@@ -3,7 +3,7 @@
  * Offline-first Tourist Safety, Risk Prediction & Disaster Rescue Coordination Website
  *
  * Simple Express + JSON-file persisted backend. No external database required —
- * good enough for a working SIH prototype / demo, easy to swap for
+ * good enough for a working prototype/demo, easy to swap for
  * PostgreSQL/PostGIS or MongoDB later without changing the route shapes.
  */
 
@@ -17,6 +17,29 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+// --- FAMILY SECURE NOTIFICATION SYSTEM ---
+let familyNumbers = [];
+let latestAlert = null;
+
+app.post('/api/add-family', (req,res)=>{
+    const { numbers } = req.body;
+    familyNumbers = numbers;
+    console.log("Family Secured:", familyNumbers.length);
+    res.json({success:true, message:"Family numbers locked 🔒"});
+});
+
+app.post('/api/send-family-alert', (req,res)=>{
+    const { lat, lng, userName } = req.body;
+    const loc = `https://www.google.com/maps?q=${lat},${lng}`;
+    latestAlert = { user: userName || "Traveller", location: loc, lat, lng, time: new Date().toLocaleString('en-IN') };
+    const waLinks = familyNumbers.map(num => `https://wa.me/91${num}?text=${encodeURIComponent(`🚨 EMERGENCY! ${latestAlert.user} needs help! Location: ${loc}`)}`);
+    res.json({success:true, waLinks, alert: latestAlert});
+});
+
+app.get('/api/get-alert', (req,res)=>{
+    res.json(latestAlert || {});
+});
+// --- END ---s
 
 // Serve the index.html website file directly
 app.use(express.static(__dirname));
