@@ -1,0 +1,2908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafeTour AI - Offline Tourist Safety & Disaster Rescue Coordination</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Vue 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Bootstrap Icons (Robust, CSS-based icons) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    /* Custom styles for animations and premium look */
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.05); }
+    }
+    .pulse-radar {
+      animation: pulse-slow 2s infinite ease-in-out;
+    }
+    .sonar-wave {
+      position: absolute;
+      border: 3px solid #ef4444;
+      border-radius: 50%;
+      animation: sonar 1.5s infinite linear;
+    }
+    @keyframes sonar {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(4); opacity: 0; }
+    }
+    .transition-all-300 {
+      transition: all 0.3s ease-in-out;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.1);
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(15, 23, 42, 0.3);
+      border-radius: 3px;
+    }
+    /* Dark scrollbar for dashboard */
+    .dark-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .dark-scroll::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    .dark-scroll::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans min-h-screen flex flex-col transition-all-300">
+  <div id="app" class="flex-grow flex flex-col">
+
+    <!-- GLOBAL NOTIFICATION TOASTS -->
+    <div class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm">
+      <div v-for="toast in toastList" :key="toast.id" 
+           :class="[
+             'p-4 rounded-lg shadow-lg border text-white flex items-start gap-3 transform translate-y-0 transition-all duration-300',
+             toast.type === 'error' ? 'bg-red-600 border-red-500' : 
+             toast.type === 'warning' ? 'bg-amber-500 border-amber-400 text-slate-950' : 
+             toast.type === 'success' ? 'bg-emerald-600 border-emerald-500' : 'bg-slate-800 border-slate-700'
+           ]">
+        <span class="text-xl">
+          <i v-if="toast.type === 'error'" class="bi bi-exclamation-triangle-fill"></i>
+          <i v-else-if="toast.type === 'warning'" class="bi bi-exclamation-circle-fill"></i>
+          <i v-else-if="toast.type === 'success'" class="bi bi-check-circle-fill"></i>
+          <i v-else class="bi bi-info-circle-fill"></i>
+        </span>
+        <div>
+          <h4 class="font-bold text-sm" v-text="toast.title"></h4>
+          <p class="text-xs opacity-95 mt-0.5" v-text="toast.message"></p>
+        </div>
+        <button @click="dismissToast(toast.id)" class="ml-auto text-white opacity-70 hover:opacity-100 text-xs font-bold">&times;</button>
+      </div>
+    </div>
+
+    <!-- MAIN NAVBAR -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <!-- Logo -->
+          <div class="flex items-center gap-2 cursor-pointer" @click="navigate('home')">
+            <div class="bg-red-600 p-2 rounded-lg flex items-center justify-center text-white">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div>
+              <span class="font-black text-xl tracking-tight text-white flex items-center gap-1">SafeTour <span class="text-red-500">AI</span></span>
+              <span class="block text-[9px] uppercase tracking-widest text-slate-400 font-semibold">Active Disaster Safe Net</span>
+            </div>
+          </div>
+
+          <!-- Desktop Navigation Menu -->
+          <nav class="hidden xl:flex items-center space-x-1">
+            <button @click="navigate('home')" :class="['px-3 py-2 rounded-md text-sm font-semibold transition-all-300', currentPage === 'home' ? 'bg-slate-800 text-white border-b-2 border-red-500' : 'text-slate-300 hover:text-white hover:bg-slate-800']">Home</button>
+            <button @click="navigate('tourist')" :class="['px-3 py-2 rounded-md text-sm font-semibold transition-all-300', currentPage === 'tourist' ? 'bg-slate-800 text-white border-b-2 border-red-500' : 'text-slate-300 hover:text-white hover:bg-slate-800']">Tourist Safety</button>
+            <button @click="navigate('risk')" :class="['px-3 py-2 rounded-md text-sm font-semibold transition-all-300', currentPage === 'risk' ? 'bg-slate-800 text-white border-b-2 border-red-500' : 'text-slate-300 hover:text-white hover:bg-slate-800']">Risk Monitor</button>
+            <button @click="navigate('map')" :class="['px-3 py-2 rounded-md text-sm font-semibold transition-all-300', currentPage === 'map' ? 'bg-slate-800 text-white border-b-2 border-red-500' : 'text-slate-300 hover:text-white hover:bg-slate-800']">Offline Map</button>
+            <button @click="navigate('sos')" :class="['px-3 py-2 rounded-md text-sm font-semibold transition-all-300', currentPage === 'sos' ? 'bg-slate-800 text-white border-b-2 border-red-500' : 'text-slate-300 hover:text-white hover:bg-slate-800']">SOS</button>
+            <button @click="navigate('dashboard')" :class="['px-3 py-2 rounded-md text-sm font-semibold transition-all-300', currentPage === 'dashboard' ? 'bg-slate-800 text-white border-b-2 border-red-500' : 'text-slate-300 hover:text-white hover:bg-slate-800']">Rescue Dashboard</button>
+            <button @click="navigate('analytics')" :class="['px-3 py-2 rounded-md text-sm font-semibold transition-all-300', currentPage === 'analytics' ? 'bg-slate-800 text-white border-b-2 border-red-500' : 'text-slate-300 hover:text-white hover:bg-slate-800']">Analytics</button>
+            <button @click="navigate('about')" :class="['px-3 py-2 rounded-md text-sm font-semibold transition-all-300', currentPage === 'about' ? 'bg-slate-800 text-white border-b-2 border-red-500' : 'text-slate-300 hover:text-white hover:bg-slate-800']">About</button>
+          </nav>
+
+          <!-- Right Login Buttons & Connectivity Status -->
+          <div class="hidden lg:flex items-center gap-3">
+            <!-- Backend API Status -->
+            <div :title="backendConnected ? 'Backend API reachable at ' + apiBaseUrl : 'Backend API unreachable — running on local/offline demo data'"
+                 :class="['hidden 2xl:flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full border', backendConnected ? 'bg-emerald-950/60 border-emerald-700 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-400']">
+              <span :class="['w-1.5 h-1.5 rounded-full', backendConnected ? 'bg-emerald-500' : 'bg-slate-500']"></span>
+              <span v-text="backendConnected ? 'API CONNECTED' : 'API OFFLINE'"></span>
+            </div>
+            <!-- Offline Status Toggle -->
+            <div class="flex items-center bg-slate-800 rounded-full p-1 border border-slate-700 text-xs">
+              <button @click="setConnectivity('online')" :class="['px-3 py-1 rounded-full font-bold transition-all', connectivity === 'online' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400']">ONLINE</button>
+              <button @click="setConnectivity('offline')" :class="['px-3 py-1 rounded-full font-bold transition-all', connectivity === 'offline' ? 'bg-rose-600 text-white shadow' : 'text-slate-400']">OFFLINE</button>
+            </div>
+            
+            <!-- User Login States -->
+            <div v-if="userRole === 'guest'" class="flex items-center gap-2">
+              <button @click="navigate('login'); setLoginTab('tourist')" class="text-xs bg-slate-800 border border-slate-700 hover:bg-slate-700 px-3 py-1.5 rounded font-bold text-slate-300 hover:text-white">Tourist Login</button>
+              <button @click="navigate('login'); setLoginTab('authority')" class="text-xs bg-blue-605 bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded font-bold text-white shadow">Authority Login</button>
+            </div>
+            <div v-else class="flex items-center gap-2">
+              <div class="text-xs bg-slate-800 border border-slate-700 px-3 py-1.5 rounded text-slate-205 text-slate-300 font-bold flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                <span v-text="loggedInUsername"></span>
+                <span class="opacity-50 text-[10px]" v-text="'(' + userRole.toUpperCase() + ')'"></span>
+              </div>
+              <button @click="logout" class="text-xs bg-red-900 hover:bg-red-800 hover:text-white text-red-200 border border-red-850 px-2.5 py-1.5 rounded font-bold transition">Logout</button>
+            </div>
+          </div>
+
+          <!-- Mobile menu button -->
+          <div class="xl:hidden flex items-center gap-2">
+            <div class="flex items-center bg-slate-800 rounded-full p-1 border border-slate-700 text-[10px]">
+              <button @click="setConnectivity('online')" :class="['px-2 py-0.5 rounded-full font-bold', connectivity === 'online' ? 'bg-emerald-600 text-white' : 'text-slate-400']">ON</button>
+              <button @click="setConnectivity('offline')" :class="['px-2 py-0.5 rounded-full font-bold', connectivity === 'offline' ? 'bg-rose-600 text-white' : 'text-slate-400']">OFF</button>
+            </div>
+            <button @click="mobileMenuOpen = !mobileMenuOpen" class="text-slate-400 hover:text-white focus:outline-none p-1 bg-slate-800 rounded">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Menu (Dropdown) -->
+      <div v-show="mobileMenuOpen" class="xl:hidden bg-slate-900 border-t border-slate-800 px-4 py-3 flex flex-col gap-1">
+        <button @click="navigate('home')" :class="['w-full text-left px-3 py-2 rounded-md text-sm font-semibold', currentPage === 'home' ? 'bg-slate-800 text-red-500' : 'text-slate-300 hover:bg-slate-800']">Home</button>
+        <button @click="navigate('tourist')" :class="['w-full text-left px-3 py-2 rounded-md text-sm font-semibold', currentPage === 'tourist' ? 'bg-slate-800 text-red-500' : 'text-slate-300 hover:bg-slate-800']">Tourist Safety</button>
+        <button @click="navigate('risk')" :class="['w-full text-left px-3 py-2 rounded-md text-sm font-semibold', currentPage === 'risk' ? 'bg-slate-800 text-red-500' : 'text-slate-300 hover:bg-slate-800']">Risk Monitor</button>
+        <button @click="navigate('map')" :class="['w-full text-left px-3 py-2 rounded-md text-sm font-semibold', currentPage === 'map' ? 'bg-slate-800 text-red-500' : 'text-slate-300 hover:bg-slate-800']">Offline Map</button>
+        <button @click="navigate('sos')" :class="['w-full text-left px-3 py-2 rounded-md text-sm font-semibold', currentPage === 'sos' ? 'bg-slate-800 text-red-500' : 'text-slate-300 hover:bg-slate-800']">SOS Emergency</button>
+        <button @click="navigate('dashboard')" :class="['w-full text-left px-3 py-2 rounded-md text-sm font-semibold', currentPage === 'dashboard' ? 'bg-slate-800 text-red-500' : 'text-slate-300 hover:bg-slate-800']">Rescue Dashboard</button>
+        <button @click="navigate('analytics')" :class="['w-full text-left px-3 py-2 rounded-md text-sm font-semibold', currentPage === 'analytics' ? 'bg-slate-800 text-red-500' : 'text-slate-300 hover:bg-slate-800']">Analytics</button>
+        <button @click="navigate('about')" :class="['w-full text-left px-3 py-2 rounded-md text-sm font-semibold', currentPage === 'about' ? 'bg-slate-800 text-red-500' : 'text-slate-300 hover:bg-slate-800']">About</button>
+        <div class="h-[1px] bg-slate-800 my-2"></div>
+        <div v-if="userRole === 'guest'" class="flex items-center gap-2">
+          <button @click="navigate('login'); setLoginTab('tourist')" class="flex-grow text-center text-xs bg-slate-800 hover:bg-slate-700 py-2 rounded font-bold text-slate-300">Tourist Login</button>
+          <button @click="navigate('login'); setLoginTab('authority')" class="flex-grow text-center text-xs bg-blue-600 hover:bg-blue-500 py-2 rounded font-bold text-white shadow">Authority Login</button>
+        </div>
+        <div v-else class="flex flex-col gap-2">
+          <div class="text-xs bg-slate-800 border border-slate-700 px-3 py-2 rounded text-slate-300 font-bold flex justify-between items-center">
+            <span>👤 {{ loggedInUsername }}</span>
+            <span class="opacity-50 text-[10px]" v-text="'(' + userRole.toUpperCase() + ')'"></span>
+          </div>
+          <button @click="logout" class="text-xs bg-red-900 hover:bg-red-800 py-2 rounded font-bold text-white shadow">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- PERSISTENT STATUS BAR -->
+    <section class="bg-slate-800 border-b border-slate-700 text-slate-300 text-xs py-2 px-4 shadow-sm">
+      <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
+        <div class="flex flex-wrap items-center gap-x-5 gap-y-1">
+          <span class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            GPS STATUS: <strong class="text-white uppercase" v-text="gpsStatus"></strong>
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            OFFLINE MAP: <strong class="text-white uppercase" v-text="offlineMapReady ? 'READY (Cached)' : 'NOT LOADED'"></strong>
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            AI RISK ENGINE: <strong class="text-white uppercase" v-text="aiEngineReady ? 'ACTIVE (Local)' : 'OFFLINE'"></strong>
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span :class="['w-2.5 h-2.5 rounded-full', connectivity === 'online' ? 'bg-emerald-500' : 'bg-red-500 animate-pulse']"></span>
+            CONNECTIVITY: <strong class="text-white uppercase" v-text="connectivity === 'online' ? 'ONLINE (Full Cloud)' : 'LIMITED / CELLULAR-LORA'"></strong>
+          </span>
+        </div>
+        
+        <!-- Multi-Location Selector in Status Bar -->
+        <div class="flex items-center gap-1.5 text-[11px] font-semibold text-white">
+          <span class="text-slate-400">DEMO LOCATION:</span>
+          <select v-model="selectedLocationKey" @change="changeLocation" class="bg-slate-900 border border-slate-700 text-white rounded px-2.5 py-1 text-xs focus:outline-none font-bold cursor-pointer accent-slate-900">
+            <option value="araku">Araku Valley, Andhra Pradesh</option>
+            <option value="kedarnath">Kedarnath Trail, Uttarakhand</option>
+            <option value="munnar">Munnar Hills, Kerala</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN PAGE CONTENTS -->
+    <main class="flex-grow">
+
+      <!-- ==============================================
+           A. LOGIN PAGE (ROLE SELECTION & FORM VIEWS)
+           ============================================== -->
+      <div v-if="currentPage === 'login'" class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 fade-in">
+        <div class="text-center mb-8 space-y-2">
+          <h1 class="text-3xl font-extrabold text-slate-900">SafeTour AI Portal Authentication</h1>
+          <p class="text-slate-500 text-sm">Please log in to check telemetry alerts or access SDRF Command systems.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+          <!-- 1. Tourist Login Card -->
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4 flex flex-col justify-between">
+            <div class="space-y-4">
+              <div class="flex items-center gap-3 border-b border-slate-100 pb-3">
+                <span class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-lg"><i class="bi bi-person-fill"></i></span>
+                <div>
+                  <h3 class="font-bold text-slate-900">Tourist Portal Login</h3>
+                  <p class="text-[11px] text-slate-400">Check trip routes, telemetry and send off-grid SOS.</p>
+                </div>
+              </div>
+
+              <div class="space-y-3.5">
+                <div class="space-y-1">
+                  <label class="text-xs font-bold text-slate-650 text-slate-700 uppercase">Username / ID:</label>
+                  <input type="text" v-model="touristLoginUsername" placeholder="e.g. rajesh_trekker" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
+                <div class="space-y-1">
+                  <label class="text-xs font-bold text-slate-650 text-slate-700 uppercase">Emergency Mobile No:</label>
+                  <input type="text" v-model="touristLoginPhone" placeholder="e.g. 9876543210" class="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-6 space-y-3">
+              <button @click="submitTouristLogin" class="w-full bg-indigo-600 hover:bg-indigo-550 text-white font-bold py-2.5 rounded text-xs shadow transition">Log In as Tourist</button>
+              <div class="text-[10px] text-indigo-700 bg-indigo-50 border border-indigo-100 p-2 rounded text-center">
+                💡 Presentation Hint: Enter username <strong class="underline cursor-pointer" @click="fillDemoCreds('tourist')">rajesh_trekker</strong> to test.
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Authority Login Card -->
+          <div class="bg-slate-900 text-white p-6 rounded-2xl border border-slate-800 shadow-xl space-y-4 flex flex-col justify-between">
+            <div class="space-y-4">
+              <div class="flex items-center gap-3 border-b border-slate-800 pb-3">
+                <span class="w-10 h-10 bg-blue-900/60 text-blue-400 rounded-full flex items-center justify-center text-lg"><i class="bi bi-shield-lock-fill"></i></span>
+                <div>
+                  <h3 class="font-bold text-white">Authority / Dispatch Login</h3>
+                  <p class="text-[11px] text-slate-455 text-slate-400">Emergency commands, telemetry tables and team dispatches.</p>
+                </div>
+              </div>
+
+              <div class="space-y-3.5">
+                <div class="space-y-1">
+                  <label class="text-xs font-bold text-slate-400 uppercase">Commander Username:</label>
+                  <input type="text" v-model="authLoginUsername" placeholder="e.g. command_sdrf" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                </div>
+                <div class="space-y-1">
+                  <label class="text-xs font-bold text-slate-400 uppercase">Security Password:</label>
+                  <input type="password" v-model="authLoginPassword" placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-6 space-y-3">
+              <button @click="submitAuthorityLogin" class="w-full bg-blue-600 hover:bg-blue-550 text-white font-bold py-2.5 rounded text-xs shadow transition">Log In as Authority</button>
+              <div class="text-[10px] text-blue-300 bg-slate-950 p-2 rounded text-center border border-slate-855 border-slate-800">
+                💡 Presentation Hint: Enter username <strong class="underline cursor-pointer text-blue-400" @click="fillDemoCreds('authority')">command_sdrf</strong> and password <strong class="text-blue-405 text-blue-400">admin123</strong> to test.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==============================================
+           1. LANDING PAGE
+           ============================================== -->
+      <div v-if="currentPage === 'home'" class="fade-in">
+        <!-- Hero Section -->
+        <section class="relative bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white overflow-hidden py-16 px-4 sm:px-6 lg:px-8">
+          <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:20px_20px]"></div>
+          <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
+            <!-- Left Hero copy -->
+            <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30">
+                <i class="bi bi-shield-fill-check mr-1 text-red-400"></i> Smart India Hackathon 2026 Prototype
+              </span>
+              <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
+                Safer Tourism.<br>Smarter Response.<br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-orange-400 to-amber-300">Even Without Connectivity.</span>
+              </h1>
+              <p class="text-lg text-slate-300 max-w-xl mx-auto lg:mx-0">
+                SafeTour AI leverages edge intelligence, offline spatial analysis, and multi-channel telemetry (SMS, Mesh gateways) to safeguard tourists in remote and hazard-prone destinations.
+              </p>
+              <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                <button @click="navigate('tourist')" class="bg-red-600 hover:bg-red-500 px-6 py-3.5 rounded-lg font-bold shadow-lg transition duration-200 text-white flex items-center justify-center gap-2">
+                  <i class="bi bi-shield-fill-exclamation text-lg"></i> Start Safety Check
+                </button>
+                <button @click="navigate('dashboard')" class="bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 px-6 py-3.5 rounded-lg font-bold shadow-lg transition duration-200 flex items-center justify-center gap-2">
+                  <i class="bi bi-speedometer2 text-lg"></i> Open Rescue Dashboard
+                </button>
+                <button @click="navigate('map')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3.5 rounded-lg font-bold shadow-lg transition duration-200 flex items-center justify-center gap-2">
+                  <i class="bi bi-geo-alt-fill text-lg"></i> Explore Safety Map
+                </button>
+              </div>
+            </div>
+            
+            <!-- Right Hero Widget -->
+            <div class="lg:col-span-5 flex justify-center">
+              <div class="w-full max-w-md bg-slate-900/90 border border-slate-700/80 rounded-2xl shadow-2xl p-6 relative overflow-hidden backdrop-blur-md">
+                <div class="absolute top-0 right-0 bg-red-600 text-[10px] text-white px-3 py-1 font-bold uppercase tracking-wider rounded-bl-lg">
+                  AI Edge Node
+                </div>
+                <div class="flex items-center gap-3 border-b border-slate-800 pb-4 mb-4">
+                  <div class="p-2 bg-slate-800 rounded-lg text-amber-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                  </div>
+                  <div>
+                    <h3 class="font-bold text-slate-100 text-sm uppercase">Geo-Safety Node</h3>
+                    <p class="text-xs text-slate-400" v-text="locationsConfig[selectedLocationKey].name"></p>
+                  </div>
+                </div>
+
+                <div class="space-y-4">
+                  <div class="flex justify-between items-center bg-slate-950 p-3 rounded-lg border border-slate-800">
+                    <span class="text-xs text-slate-400">Location Focus:</span>
+                    <span class="text-sm font-bold text-white flex items-center gap-1"><i class="bi bi-map text-sky-400 mr-1"></i> <span v-text="locationsConfig[selectedLocationKey].name.split(',')[0]"></span></span>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+                      <span class="text-[10px] uppercase text-slate-500 block mb-0.5 font-bold">Current Risk</span>
+                      <span :class="['text-sm font-bold px-2 py-0.5 rounded text-white inline-block', 
+                                   calculatedRisk > 80 ? 'bg-red-600' :
+                                   calculatedRisk > 60 ? 'bg-orange-500' :
+                                   calculatedRisk > 30 ? 'bg-yellow-500 text-slate-955 text-slate-950' : 'bg-emerald-600']" 
+                            v-text="riskLevelText"></span>
+                    </div>
+                    <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+                      <span class="text-[10px] uppercase text-slate-500 block mb-0.5 font-bold">Connectivity</span>
+                      <span :class="['text-sm font-bold', connectivity === 'online' ? 'text-emerald-400' : 'text-red-400 animate-pulse']" v-text="connectivity === 'online' ? 'ONLINE' : 'LIMITED (Mesh/SMS)'"></span>
+                    </div>
+                    <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+                      <span class="text-[10px] uppercase text-slate-500 block mb-0.5 font-bold">GPS Signal</span>
+                      <span class="text-sm font-bold text-emerald-400 flex items-center gap-1"><span class="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span> ACTIVE</span>
+                    </div>
+                    <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+                      <span class="text-[10px] uppercase text-slate-500 block mb-0.5 font-bold">Local Offline Map</span>
+                      <span class="text-sm font-bold text-sky-400">READY</span>
+                    </div>
+                  </div>
+
+                  <div class="bg-slate-950 p-3.5 rounded-lg border border-slate-800 text-center">
+                    <span class="text-xs text-slate-400 block mb-1">Interactive Risk Preview Dial:</span>
+                    <div class="text-2xl font-black text-white flex justify-center items-baseline gap-1">
+                      <span class="text-3xl text-red-500" v-text="calculatedRisk"></span>
+                      <span class="text-xs text-slate-500">/ 100</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 text-slate-500 mt-1" v-text="'Weather: ' + riskSliders.weather + ' | Deviation: ' + riskSliders.deviation + 'm'"></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Why SafeTour AI? Section -->
+        <section class="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="text-center max-w-3xl mx-auto mb-12">
+            <h2 class="text-3xl font-extrabold text-slate-900">Why SafeTour AI?</h2>
+            <p class="mt-4 text-slate-655 text-slate-600">
+              Remote, mountainous, and forested locations expose tourists to critical infrastructure deficits and unpredictable physical environments.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- 1 -->
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all-300">
+              <div class="w-12 h-12 bg-red-100 text-red-650 text-red-600 rounded-lg flex items-center justify-center mb-4 text-xl">
+                <i class="bi bi-wifi-off"></i>
+              </div>
+              <h3 class="font-bold text-lg text-slate-955 text-slate-950 mb-2">No Connectivity</h3>
+              <p class="text-sm text-slate-600 font-medium leading-relaxed">
+                Tourists routinely lose internet access and cellular signal in remote valley gorges, isolating them during accidents.
+              </p>
+            </div>
+            <!-- 2 -->
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all-300">
+              <div class="w-12 h-12 bg-amber-100 text-amber-655 text-amber-600 rounded-lg flex items-center justify-center mb-4 text-xl">
+                <i class="bi bi-compass"></i>
+              </div>
+              <h3 class="font-bold text-lg text-slate-955 text-slate-950 mb-2">Route Deviation</h3>
+              <p class="text-sm text-slate-605 text-slate-600 font-medium leading-relaxed">
+                Unregulated trekking paths can lead tourists astray into protected forest reserves or hazardous rocky terrains.
+              </p>
+            </div>
+            <!-- 3 -->
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all-300">
+              <div class="w-12 h-12 bg-blue-100 text-blue-655 text-blue-600 rounded-lg flex items-center justify-center mb-4 text-xl">
+                <i class="bi bi-cloud-rain-heavy"></i>
+              </div>
+              <h3 class="font-bold text-lg text-slate-955 text-slate-950 mb-2">Unpredictable Hazards</h3>
+              <p class="text-sm text-slate-605 text-slate-600 font-medium leading-relaxed">
+                Flash floods, sudden cloudbursts, and heavy rain trigger landslides that wash away paths in minutes.
+              </p>
+            </div>
+            <!-- 4 -->
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all-300">
+              <div class="w-12 h-12 bg-purple-100 text-purple-655 text-purple-650 text-purple-600 rounded-lg flex items-center justify-center mb-4 text-xl">
+                <i class="bi bi-geo-alt-fill"></i>
+              </div>
+              <h3 class="font-bold text-lg text-slate-955 text-slate-950 mb-2">Location Uncertainty</h3>
+              <p class="text-sm text-slate-605 text-slate-600 font-medium leading-relaxed">
+                Victims struggling in dense foliage can rarely describe their coordinates, delaying response times.
+              </p>
+            </div>
+            <!-- 5 -->
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all-300">
+              <div class="w-12 h-12 bg-indigo-100 text-indigo-655 text-indigo-605 text-indigo-600 rounded-lg flex items-center justify-center mb-4 text-xl">
+                <i class="bi bi-clock"></i>
+              </div>
+              <h3 class="font-bold text-lg text-slate-955 text-slate-950 mb-2">Rescue Delays</h3>
+              <p class="text-sm text-slate-605 text-slate-600 font-medium leading-relaxed">
+                Rescue commands receive emergency data delayed by hours or lack diagnostic details (injury type, battery state).
+              </p>
+            </div>
+            <!-- 6 -->
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all-300">
+              <div class="w-12 h-12 bg-emerald-100 text-emerald-650 text-emerald-600 rounded-lg flex items-center justify-center mb-4 text-xl">
+                <i class="bi bi-hospital"></i>
+              </div>
+              <h3 class="font-bold text-lg text-slate-955 text-slate-950 mb-2">Limited Local Awareness</h3>
+              <p class="text-sm text-slate-605 text-slate-600 font-medium leading-relaxed">
+                Tourists lack immediate awareness of nearby safe shelters, local administrative posts, and hospitals.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Core Features Section -->
+        <section class="bg-slate-100 py-16">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-12">
+              <h2 class="text-3xl font-extrabold text-slate-900">Platform Core Features</h2>
+              <p class="mt-4 text-slate-605 text-slate-600">
+                SafeTour AI bridges the gaps in communication, risk awareness, and operational logistics for remote tourism.
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <!-- Feature 1 -->
+              <div class="bg-white rounded-xl border border-slate-200 p-5 flex flex-col justify-between hover:translate-y-[-2px] transition-all-300 shadow-sm">
+                <div>
+                  <div class="text-red-500 font-bold mb-2 flex items-center gap-1.5"><i class="bi bi-map mr-1"></i> Offline Safety Map</div>
+                  <p class="text-xs text-slate-555 text-slate-500 leading-relaxed mb-4">Highly detailed cached map rendering topographical contours, hospitals, shelters, and police stations without cellular connection.</p>
+                </div>
+                <button @click="navigate('map')" class="text-xs text-red-600 font-bold hover:text-red-500 text-left flex items-center gap-1">Explore Feature <i class="bi bi-arrow-right"></i></button>
+              </div>
+              <!-- Feature 2 -->
+              <div class="bg-white rounded-xl border border-slate-200 p-5 flex flex-col justify-between hover:translate-y-[-2px] transition-all-300 shadow-sm">
+                <div>
+                  <div class="text-orange-500 font-bold mb-2 flex items-center gap-1.5"><i class="bi bi-cpu mr-1"></i> AI Risk Prediction</div>
+                  <p class="text-xs text-slate-555 text-slate-500 leading-relaxed mb-4">On-device edge AI algorithm scoring current danger levels by aggregating weather indexes, time of day, terrain, and crowds.</p>
+                </div>
+                <button @click="navigate('risk')" class="text-xs text-orange-600 font-bold hover:text-orange-500 text-left flex items-center gap-1">Explore Feature <i class="bi bi-arrow-right"></i></button>
+              </div>
+              <!-- Feature 3 -->
+              <div class="bg-white rounded-xl border border-slate-200 p-5 flex flex-col justify-between hover:translate-y-[-2px] transition-all-300 shadow-sm">
+                <div>
+                  <div class="text-yellow-600 font-bold mb-2 flex items-center gap-1.5"><i class="bi bi-signpost-split mr-1"></i> Route Monitoring</div>
+                  <p class="text-xs text-slate-555 text-slate-500 leading-relaxed mb-4">Calculates GPS distance to safe trails in real-time, providing immediate alarms if hikers drift too deep into restricted territories.</p>
+                </div>
+                <button @click="navigate('tourist')" class="text-xs text-yellow-600 font-bold hover:text-yellow-500 text-left flex items-center gap-1">Explore Feature <i class="bi bi-arrow-right"></i></button>
+              </div>
+              <!-- Feature 4 -->
+              <div class="bg-white rounded-xl border border-slate-200 p-5 flex flex-col justify-between hover:translate-y-[-2px] transition-all-300 shadow-sm">
+                <div>
+                  <div class="text-rose-600 font-bold mb-2 flex items-center gap-1.5"><i class="bi bi-exclamation-octagon-fill mr-1 animate-pulse"></i> Emergency SOS</div>
+                  <p class="text-xs text-slate-555 text-slate-500 leading-relaxed mb-4">Generates highly compressed binary packet containing coordinates, diagnostics, and battery status for low-bandwidth LoRa grids.</p>
+                </div>
+                <button @click="navigate('sos')" class="text-xs text-rose-600 font-bold hover:text-rose-500 text-left flex items-center gap-1">Explore Feature <i class="bi bi-arrow-right"></i></button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ==============================================
+           2. TOURIST SAFETY PORTAL
+           ============================================== -->
+      <div v-if="currentPage === 'tourist'" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 fade-in">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 class="text-3xl font-extrabold text-slate-900">Tourist Safety Center</h1>
+            <p class="text-slate-500 text-sm">Real-time safety telemetries and off-grid location check indicators.</p>
+          </div>
+          <!-- Status Banner -->
+          <div class="flex items-center gap-2 bg-white px-4 py-2 border border-slate-200 rounded-lg shadow-sm">
+            <span class="text-xs text-slate-500">Trip Destination:</span>
+            <span class="text-xs font-bold text-slate-900 bg-slate-100 px-2.5 py-1 rounded" v-text="touristProfile.trip"></span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <!-- Left side: Personal stats -->
+          <div class="lg:col-span-8 space-y-6">
+            
+            <!-- Quick Profile Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                <span class="text-[10px] text-slate-500 font-bold uppercase block mb-1">Tourist ID</span>
+                <span class="text-lg font-black text-slate-900" v-text="touristProfile.id"></span>
+              </div>
+              <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                <span class="text-[10px] text-slate-500 text-slate-500 font-bold uppercase block mb-1">Battery Status</span>
+                <div class="flex items-center justify-center gap-1.5 mt-1">
+                  <span :class="['text-lg font-black', touristProfile.battery > 50 ? 'text-emerald-600' : touristProfile.battery > 20 ? 'text-amber-500' : 'text-red-500']" v-text="touristProfile.battery + '%'"></span>
+                  <div class="w-10 h-4 border border-slate-300 rounded relative overflow-hidden bg-slate-100 flex items-center p-0.5">
+                    <div :class="['h-full rounded-sm', touristProfile.battery > 50 ? 'bg-emerald-500' : touristProfile.battery > 20 ? 'bg-amber-400' : 'bg-red-500']" :style="{ width: touristProfile.battery + '%' }"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                <span class="text-[10px] text-slate-500 text-slate-500 font-bold uppercase block mb-1">GPS Status</span>
+                <span class="text-sm font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded inline-block mt-1">
+                  <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full inline-block animate-ping mr-1"></span> ACTIVE
+                </span>
+              </div>
+              <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                <span class="text-[10px] text-slate-500 text-slate-500 font-bold uppercase block mb-1">Connectivity</span>
+                <span :class="['text-xs font-bold px-2 py-0.5 rounded inline-block mt-1', connectivity==='online' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600']" v-text="connectivity==='online' ? 'ONLINE' : 'LORA / SMS'"></span>
+              </div>
+            </div>
+
+            <!-- Route Deviation Alert Status -->
+            <div :class="['p-5 rounded-xl border transition-all-300 shadow-sm flex items-start gap-4', 
+                         deviationLevel === 'safe' ? 'bg-emerald-50 border-emerald-200 text-emerald-950' : 
+                         deviationLevel === 'warning' ? 'bg-yellow-50 border-yellow-200 text-yellow-950' : 
+                         deviationLevel === 'high' ? 'bg-orange-50 border-orange-200 text-orange-950' : 
+                         'bg-red-50 border-red-200 text-red-950']">
+              <span class="text-2xl mt-0.5">
+                <i v-if="deviationLevel === 'safe'" class="bi bi-check-circle-fill text-emerald-600"></i>
+                <i v-else-if="deviationLevel === 'warning'" class="bi bi-exclamation-circle-fill text-yellow-600"></i>
+                <i v-else-if="deviationLevel === 'high'" class="bi bi-exclamation-triangle-fill text-orange-600"></i>
+                <i v-else class="bi bi-shield-fill-x text-red-600"></i>
+              </span>
+              <div class="space-y-1 flex-grow">
+                <h3 class="font-extrabold text-base uppercase">Smart Route Monitoring</h3>
+                <p class="text-sm font-semibold" v-text="deviationStatus"></p>
+                <div class="pt-2 flex flex-wrap gap-x-6 gap-y-1 text-xs opacity-90">
+                  <span>Current Route: <strong v-text="touristProfile.route"></strong></span>
+                  <span>Deviation: <strong class="underline" v-text="touristProfile.distanceDev + ' meters'"></strong></span>
+                </div>
+                <div v-if="deviationLevel !== 'safe'" class="pt-3">
+                  <button @click="resetDeviation()" class="bg-red-600 text-white font-bold px-4 py-2 rounded text-xs hover:bg-red-500 flex items-center gap-1 shadow">
+                    <i class="bi bi-navigation-fill"></i> RETURN TO SAFE ROUTE
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Telemetry Diagnostics details -->
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+              <h3 class="font-bold text-lg text-slate-900 border-b border-slate-100 pb-2">Active Location Diagnostics</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                  <div class="flex justify-between text-xs py-1 border-b border-slate-100">
+                    <span class="text-slate-500">Current Latitude:</span>
+                    <strong class="font-mono text-slate-800" v-text="touristProfile.latitude.toFixed(6)"></strong>
+                  </div>
+                  <div class="flex justify-between text-xs py-1 border-b border-slate-100">
+                    <span class="text-slate-500">Current Longitude:</span>
+                    <strong class="font-mono text-slate-800" v-text="touristProfile.longitude.toFixed(6)"></strong>
+                  </div>
+                  <div class="flex justify-between text-xs py-1 border-b border-slate-100">
+                    <span class="text-slate-500">Compass Orientation:</span>
+                    <strong class="text-slate-800">48° NE (Descending Trail)</strong>
+                  </div>
+                </div>
+                <div class="space-y-2">
+                  <div class="flex justify-between text-xs py-1 border-b border-slate-100">
+                    <span class="text-slate-500">Nearest Safe Point:</span>
+                    <strong class="text-slate-800" v-text="touristProfile.nearestSafePoint"></strong>
+                  </div>
+                  <div class="flex justify-between text-xs py-1 border-b border-slate-100">
+                    <span class="text-slate-500">Nearest Hospital:</span>
+                    <strong class="text-slate-800" v-text="touristProfile.nearestHospital"></strong>
+                  </div>
+                  <div class="flex justify-between text-xs py-1 border-b border-slate-100">
+                    <span class="text-slate-500">Nearest Rescue Unit:</span>
+                    <strong class="text-slate-800" v-text="touristProfile.nearestRescue"></strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Route Deviation Interactive Selector (Judges Demo Control) -->
+            <div class="bg-indigo-50 border border-indigo-200 p-5 rounded-xl">
+              <h3 class="font-bold text-sm text-indigo-950 mb-2 flex items-center gap-1.5">
+                <i class="bi bi-sliders text-indigo-600"></i> SIH Demo Control: Route Deviation Simulation
+              </h3>
+              <p class="text-xs text-indigo-800 mb-4">Toggle tourist movement on the marked trail routes to demonstrate the dynamic risk alarms.</p>
+              <div class="flex flex-wrap gap-2">
+                <button @click="simulateDeviationFromPortal(0)" :class="['px-3 py-2 rounded text-xs font-bold transition', touristProfile.distanceDev === 0 ? 'bg-indigo-600 text-white shadow' : 'bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-100']">On Track (0m)</button>
+                <button @click="simulateDeviationFromPortal(100)" :class="['px-3 py-2 rounded text-xs font-bold transition', touristProfile.distanceDev === 100 ? 'bg-indigo-600 text-white shadow' : 'bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-100']">Slight Drift (100m)</button>
+                <button @click="simulateDeviationFromPortal(300)" :class="['px-3 py-2 rounded text-xs font-bold transition', touristProfile.distanceDev === 300 ? 'bg-indigo-600 text-white shadow' : 'bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-100']">High Deviation (300m)</button>
+                <button @click="simulateDeviationFromPortal(500)" :class="['px-3 py-2 rounded text-xs font-bold transition', touristProfile.distanceDev > 500 ? 'bg-indigo-600 text-white shadow' : 'bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-100']">Critical Off-trail (500m+)</button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Right side: Score dials -->
+          <div class="lg:col-span-4 space-y-6">
+            
+            <!-- Large Safety Score -->
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm text-center flex flex-col items-center">
+              <h3 class="font-bold text-sm text-slate-500 uppercase tracking-wider mb-4">TOURIST SAFETY INDEX</h3>
+              
+              <!-- Circular Progress Bar -->
+              <div class="relative w-40 h-40 flex items-center justify-center mb-4">
+                <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="42" stroke="#f1f5f9" stroke-width="8" fill="transparent" />
+                  <circle cx="50" cy="50" r="42" 
+                          :stroke="calculatedRisk > 80 ? '#ef4444' : calculatedRisk > 60 ? '#f97316' : calculatedRisk > 30 ? '#eab308' : '#10b981'" 
+                          stroke-width="8" fill="transparent" 
+                          :stroke-dasharray="263.89" 
+                          :stroke-dashoffset="263.89 * (calculatedRisk / 100)" 
+                          stroke-linecap="round"
+                          class="transition-all duration-500" />
+                </svg>
+                <div class="absolute flex flex-col items-center justify-center">
+                  <span class="text-4xl font-black text-slate-900" v-text="100 - calculatedRisk"></span>
+                  <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Safety Index</span>
+                </div>
+              </div>
+
+              <div class="w-full mt-2">
+                <span :class="['px-4 py-1.5 rounded-full text-xs font-extrabold tracking-wider text-white inline-block',
+                             calculatedRisk > 80 ? 'bg-red-600' :
+                             calculatedRisk > 60 ? 'bg-orange-500' :
+                             calculatedRisk > 30 ? 'bg-yellow-500 text-slate-950' : 'bg-emerald-600']"
+                      v-text="calculatedRisk > 80 ? 'CRITICAL RISK' : calculatedRisk > 60 ? 'HIGH RISK' : calculatedRisk > 30 ? 'MEDIUM RISK' : 'SAFE'">
+                </span>
+                <p class="text-xs text-slate-500 mt-3 font-medium" v-text="calculatedRisk > 60 ? 'Warning: Edge AI suggests immediately returning to marked routes or checking weather status.' : 'Status is clear. Keep tracking GPS coordinates on your offline map.'"></p>
+              </div>
+            </div>
+
+            <!-- Action buttons shortcuts -->
+            <div class="bg-slate-900 text-white p-5 rounded-xl space-y-3">
+              <h4 class="font-bold text-xs text-slate-400 uppercase tracking-wider mb-2">Safety Shortcuts</h4>
+              <button @click="navigate('map')" class="w-full bg-slate-800 hover:bg-slate-700 p-3 rounded-lg flex items-center justify-between text-xs font-bold border border-slate-700 transition">
+                <span class="flex items-center gap-2"><i class="bi bi-map-fill text-emerald-400"></i> View Offline Map Grid</span>
+                <i class="bi bi-chevron-right"></i>
+              </button>
+              <button @click="navigate('risk')" class="w-full bg-slate-800 hover:bg-slate-700 p-3 rounded-lg flex items-center justify-between text-xs font-bold border border-slate-700 transition">
+                <span class="flex items-center gap-2"><i class="bi bi-activity text-amber-400"></i> Analyze Live AI Inputs</span>
+                <i class="bi bi-chevron-right"></i>
+              </button>
+              <button @click="navigate('sos')" class="w-full bg-red-600 hover:bg-red-500 p-3 rounded-lg flex items-center justify-center gap-2 text-xs font-black text-white shadow-lg transition">
+                <i class="bi bi-exclamation-octagon-fill"></i> SEND SOS PACKET
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- ==============================================
+           3. AI RISK MONITOR
+           ============================================== -->
+      <div v-if="currentPage === 'risk'" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 fade-in">
+        <div class="mb-6">
+          <span class="text-xs font-bold uppercase tracking-widest text-red-500">Prototype AI Simulation</span>
+          <h1 class="text-3xl font-extrabold text-slate-900">AI Risk Intelligence & Controls</h1>
+          <p class="text-slate-500 text-sm">Fine-tune geo-hazard inputs dynamically to simulate edge-computing risk evaluation in remote zones.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          <!-- Left side: Interactive sliders -->
+          <div class="lg:col-span-8 bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
+            <h3 class="font-bold text-lg text-slate-950 border-b border-slate-100 pb-2 flex items-center gap-2">
+              <i class="bi bi-sliders text-indigo-600"></i> Adjust Environmental Parameters
+            </h3>
+
+            <!-- Sliders -->
+            <div class="space-y-5">
+              <!-- 1. Weather -->
+              <div class="space-y-2">
+                <div class="flex justify-between items-center">
+                  <label class="text-xs font-bold text-slate-700 uppercase tracking-wider">Weather Condition</label>
+                  <span class="text-xs font-black text-indigo-600 uppercase" v-text="riskSliders.weather.replace('_', ' ')"></span>
+                </div>
+                <div class="grid grid-cols-4 gap-2">
+                  <button @click="riskSliders.weather = 'clear'; recalculateRisk();" :class="['py-2 text-xs font-bold rounded border transition', riskSliders.weather === 'clear' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100']">Clear</button>
+                  <button @click="riskSliders.weather = 'rain'; recalculateRisk();" :class="['py-2 text-xs font-bold rounded border transition', riskSliders.weather === 'rain' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100']">Rain</button>
+                  <button @click="riskSliders.weather = 'heavy_rain'; recalculateRisk();" :class="['py-2 text-xs font-bold rounded border transition', riskSliders.weather === 'heavy_rain' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100']">Heavy Rain</button>
+                  <button @click="riskSliders.weather = 'storm'; recalculateRisk();" :class="['py-2 text-xs font-bold rounded border transition', riskSliders.weather === 'storm' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100']">Storm</button>
+                </div>
+              </div>
+
+              <!-- 2. Route Deviation -->
+              <div class="space-y-2">
+                <div class="flex justify-between items-center">
+                  <label class="text-xs font-bold text-slate-700 uppercase tracking-wider">Route Deviation (m)</label>
+                  <span class="text-xs font-black text-indigo-600" v-text="riskSliders.deviation + ' meters'"></span>
+                </div>
+                <input type="range" min="0" max="500" step="100" v-model.number="riskSliders.deviation" @input="recalculateRisk()" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                <div class="flex justify-between text-[10px] text-slate-400 px-1 font-mono">
+                  <span>0m (On-Route)</span>
+                  <span>100m</span>
+                  <span>200m</span>
+                  <span>300m</span>
+                  <span>400m</span>
+                  <span>500m+ (Off-trail)</span>
+                </div>
+              </div>
+
+              <!-- 3. Terrain -->
+              <div class="space-y-2">
+                <div class="flex justify-between items-center">
+                  <label class="text-xs font-bold text-slate-700 uppercase tracking-wider">Terrain Risk Classification</label>
+                  <span class="text-xs font-black text-indigo-600 uppercase" v-text="riskSliders.terrain.replace('_', ' ')"></span>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                  <button @click="riskSliders.terrain = 'safe'; recalculateRisk();" :class="['py-2 text-xs font-bold rounded border transition', riskSliders.terrain === 'safe' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100']">Safe Trail</button>
+                  <button @click="riskSliders.terrain = 'moderate'; recalculateRisk();" :class="['py-2 text-xs font-bold rounded border transition', riskSliders.terrain === 'moderate' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100']">Mountain Gorges</button>
+                  <button @click="riskSliders.terrain = 'high_risk'; recalculateRisk();" :class="['py-2 text-xs font-bold rounded border transition', riskSliders.terrain === 'high_risk' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100']">Steep Cliffs</button>
+                </div>
+              </div>
+
+              <!-- 4. Time -->
+              <div class="space-y-2">
+                <div class="flex justify-between items-center">
+                  <label class="text-xs font-bold text-slate-700 uppercase tracking-wider">Time of Day</label>
+                  <span class="text-xs font-black text-indigo-600 uppercase" v-text="riskSliders.time"></span>
+                </div>
+                <div class="grid grid-cols-4 gap-2">
+                  <button @click="riskSliders.time = 'morning'; recalculateRisk();" :class="['py-2 text-xs font-bold rounded border transition', riskSliders.time === 'morning' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100']">Morning</button>
+                  <button @click="riskSliders.time = 'afternoon'; recalculateRisk();" :class="['py-2 text-xs font-bold rounded border transition', riskSliders.time === 'afternoon' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100']">Afternoon</button>
+                  <button @click="riskSliders.time = 'evening'; recalculateRisk();" :class="['py-2 text-xs font-bold rounded border transition', riskSliders.time === 'evening' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100']">Evening</button>
+                  <button @click="riskSliders.time = 'night'; recalculateRisk();" :class="['py-2 text-xs font-bold rounded border transition', riskSliders.time === 'night' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100']">Night</button>
+                </div>
+              </div>
+
+              <!-- 5. Crowd -->
+              <div class="space-y-2">
+                <div class="flex justify-between items-center">
+                  <label class="text-xs font-bold text-slate-700 uppercase tracking-wider">Tourist Density (Crowd)</label>
+                  <span class="text-xs font-black text-indigo-600 uppercase" v-text="riskSliders.crowd"></span>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                  <button @click="riskSliders.crowd = 'low'; recalculateRisk();" :class="['py-2 text-xs font-bold rounded border transition', riskSliders.crowd === 'low' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100']">Low (Isolated)</button>
+                  <button @click="riskSliders.crowd = 'medium'; recalculateRisk();" :class="['py-2 text-xs font-bold rounded border transition', riskSliders.crowd === 'medium' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100']">Medium</button>
+                  <button @click="riskSliders.crowd = 'high'; recalculateRisk();" :class="['py-2 text-xs font-bold rounded border transition', riskSliders.crowd === 'high' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100']">High (Crowded)</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Risk Changed Alert -->
+            <div v-if="lastRiskChange" class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs flex items-center justify-between text-amber-900 shadow-inner">
+              <span class="flex items-center gap-1.5"><i class="bi bi-exclamation-circle-fill text-amber-600"></i> Risk score recalculated: <strong v-text="lastRiskChange"></strong></span>
+              <span class="font-bold text-indigo-600">Dynamic AI Recalculator Active</span>
+            </div>
+
+            <!-- AI Predictive Risk Forecast -->
+            <div class="border-t border-slate-100 pt-5">
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2"><i class="bi bi-graph-up-arrow text-indigo-600"></i> AI Predictive Risk Forecast</h3>
+                <span class="text-[10px] font-bold text-slate-400 uppercase">Next 4 Hours · Local Edge Model</span>
+              </div>
+              <p class="text-[11px] text-slate-500 mb-3">Projects how the danger score is likely to evolve if current weather and route conditions persist, so alerts can fire <em>before</em> conditions turn critical.</p>
+              <div class="h-40">
+                <canvas id="predictiveChart"></canvas>
+              </div>
+              <p v-if="forecastWarning" class="mt-3 text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded-lg p-2.5 flex items-center gap-2">
+                <i class="bi bi-exclamation-triangle-fill"></i> <span v-text="forecastWarning"></span>
+              </p>
+            </div>
+          </div>
+
+          <!-- Right side: Score Breakdown dial -->
+          <div class="lg:col-span-4 space-y-6">
+            <!-- Animated dial -->
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm text-center flex flex-col items-center">
+              <h3 class="font-bold text-sm text-slate-500 uppercase tracking-wider mb-4">LIVE RISK SCORE</h3>
+              
+              <!-- Circular Progress Bar -->
+              <div class="relative w-44 h-44 flex items-center justify-center mb-4">
+                <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="42" stroke="#f1f5f9" stroke-width="8" fill="transparent" />
+                  <circle cx="50" cy="50" r="42" 
+                          :stroke="calculatedRisk > 80 ? '#ef4444' : calculatedRisk > 60 ? '#f97316' : calculatedRisk > 30 ? '#eab308' : '#10b981'" 
+                          stroke-width="8" fill="transparent" 
+                          :stroke-dasharray="263.89" 
+                          :stroke-dashoffset="263.89 * ((100 - calculatedRisk) / 100)" 
+                          stroke-linecap="round"
+                          class="transition-all duration-300" />
+                </svg>
+                <div class="absolute flex flex-col items-center justify-center">
+                  <span class="text-5xl font-black text-slate-900 animate-pulse" v-text="calculatedRisk"></span>
+                  <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mt-1">Danger score</span>
+                </div>
+              </div>
+
+              <span :class="['px-5 py-2 rounded-full text-xs font-extrabold tracking-wider text-white inline-block',
+                           calculatedRisk > 80 ? 'bg-red-600' :
+                           calculatedRisk > 60 ? 'bg-orange-500' :
+                           calculatedRisk > 30 ? 'bg-yellow-500 text-slate-950' : 'bg-emerald-600']"
+                    v-text="calculatedRisk > 80 ? 'CRITICAL RISK' : calculatedRisk > 60 ? 'HIGH RISK' : calculatedRisk > 30 ? 'MEDIUM RISK' : 'LOW RISK'">
+              </span>
+              <p class="text-xs text-slate-500 mt-4 leading-relaxed font-medium" 
+                 v-text="calculatedRisk > 80 ? 'AI Risk Model Warning: Extreme conditions detected. System is preparing offline safety broadcasts for nearby gateways.' :
+                         calculatedRisk > 60 ? 'AI analysis indicates increased risk due to route deviation and terrain conditions.' : 
+                         'Risk indicators are within normal parameters. Edge calculations steady.'">
+              </p>
+            </div>
+
+            <!-- Risk breakdown details -->
+            <div class="bg-slate-900 text-white p-6 rounded-xl shadow-md space-y-4">
+              <h4 class="font-bold text-xs text-slate-400 uppercase tracking-wider border-b border-slate-800 pb-2">AI Score Breakdown</h4>
+              <div class="space-y-3.5 text-xs font-mono">
+                <!-- Location risk -->
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-400">Location Constant</span>
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-slate-200">20 / 25</span>
+                    <div class="w-16 h-1.5 bg-slate-800 rounded overflow-hidden"><div class="h-full bg-indigo-500" style="width: 80%"></div></div>
+                  </div>
+                </div>
+                <!-- Weather risk -->
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-400">Weather Risk Factor</span>
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-slate-200" v-text="getBreakdownScore('weather') + ' / 25'"></span>
+                    <div class="w-16 h-1.5 bg-slate-800 rounded overflow-hidden"><div class="h-full bg-indigo-500 animate-all" :style="{ width: (getBreakdownScore('weather') / 25 * 100) + '%' }"></div></div>
+                  </div>
+                </div>
+                <!-- Route deviation -->
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-400">Route Deviation Score</span>
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-slate-200" v-text="getBreakdownScore('deviation') + ' / 20'"></span>
+                    <div class="w-16 h-1.5 bg-slate-800 rounded overflow-hidden"><div class="h-full bg-indigo-500 animate-all" :style="{ width: (getBreakdownScore('deviation') / 20 * 100) + '%' }"></div></div>
+                  </div>
+                </div>
+                <!-- Terrain risk -->
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-400">Terrain Risk Factor</span>
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-slate-200" v-text="getBreakdownScore('terrain') + ' / 15'"></span>
+                    <div class="w-16 h-1.5 bg-slate-800 rounded overflow-hidden"><div class="h-full bg-indigo-500 animate-all" :style="{ width: (getBreakdownScore('terrain') / 15 * 100) + '%' }"></div></div>
+                  </div>
+                </div>
+                <!-- Time risk -->
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-400">Diurnal (Time) Risk</span>
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-slate-200" v-text="getBreakdownScore('time') + ' / 10'"></span>
+                    <div class="w-16 h-1.5 bg-slate-800 rounded overflow-hidden"><div class="h-full bg-indigo-500 animate-all" :style="{ width: (getBreakdownScore('time') / 10 * 100) + '%' }"></div></div>
+                  </div>
+                </div>
+                <!-- Density risk -->
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-400">Density Risk (Isolation)</span>
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-slate-200" v-text="getBreakdownScore('crowd') + ' / 5'"></span>
+                    <div class="w-16 h-1.5 bg-slate-800 rounded overflow-hidden"><div class="h-full bg-indigo-500 animate-all" :style="{ width: (getBreakdownScore('crowd') / 5 * 100) + '%' }"></div></div>
+                  </div>
+                </div>
+
+                <div class="h-[1px] bg-slate-800 my-2"></div>
+
+                <div class="flex justify-between items-center text-sm font-bold pt-1 font-sans">
+                  <span>Calculated AI Aggregate</span>
+                  <span class="text-red-500 font-mono" v-text="calculatedRisk + ' / 100'"></span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ==============================================
+           4. OFFLINE SAFETY MAP
+           ============================================== -->
+      <div v-if="currentPage === 'map'" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 fade-in">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 class="text-3xl font-extrabold text-slate-900" v-text="locationsConfig[selectedLocationKey].name.split(',')[0] + ' Offline Safety Map'"></h1>
+            <p class="text-slate-500 text-sm">Full interactive topological map rendering routes, emergency nodes, hazards, and coordinates 100% offline.</p>
+          </div>
+          <!-- Download Map Button -->
+          <div class="flex items-center gap-2">
+            <button @click="downloadMap()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded text-xs shadow flex items-center gap-1.5">
+              <i class="bi bi-download"></i> Download Safety Map
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          <!-- Map Status Panel Left -->
+          <div class="lg:col-span-3 space-y-6">
+            
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+              <h3 class="font-bold text-sm text-slate-900 border-b border-slate-100 pb-2 uppercase tracking-wider">OFFLINE MAP STATUS</h3>
+              
+              <div class="space-y-3 text-xs font-medium">
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-500">Map Data:</span>
+                  <span class="font-bold text-emerald-600 text-right" v-text="selectedLocationKey.toUpperCase() + ' MAP LOADED'"></span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-500">GPS Signal:</span>
+                  <span class="font-bold text-emerald-600 flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span> ACTIVE
+                  </span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-500">Last Synced:</span>
+                  <span class="font-bold text-slate-800">Today, 14:25</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-slate-500">Terrain:</span>
+                  <span class="font-bold text-slate-600 text-right" v-text="locationsConfig[selectedLocationKey].terrain"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Legends Panel -->
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
+              <h3 class="font-bold text-sm text-slate-900 border-b border-slate-100 pb-1.5 uppercase tracking-wider">MAP LEGEND</h3>
+              <div class="space-y-2 text-xs">
+                <div class="flex items-center gap-2">
+                  <span class="w-4 h-1 border-t-2 border-dashed border-emerald-500"></span>
+                  <span class="text-slate-600">Recommended Route (Safe)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-4 h-1 border-t-2 border-dashed border-yellow-500"></span>
+                  <span class="text-slate-600">Moderate Trail Danger</span>
+                </div>
+                <div class="flex items-center gap-2" v-for="haz in locationsConfig[selectedLocationKey].hazards">
+                  <span class="w-4 h-3 rounded-sm opacity-25 border" :style="{ backgroundColor: haz.color, borderColor: haz.color }"></span>
+                  <span class="text-slate-600" v-text="haz.name"></span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-3.5 h-3.5 rounded-full bg-sky-500 border border-white shadow flex items-center justify-center text-[8px] text-white font-bold font-mono">T</span>
+                  <span class="text-slate-600">Tourist Location (Active)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-3.5 h-3.5 rounded bg-purple-600 text-white font-bold flex items-center justify-center text-[7px] p-0.5 shadow font-mono">R</span>
+                  <span class="text-slate-600">Rescue Node / Safe Point</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Interactivity Help -->
+            <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl text-xs text-indigo-900 leading-relaxed space-y-1">
+              <p class="font-bold flex items-center gap-1"><i class="bi bi-info-circle-fill text-indigo-600"></i> Interactive Map Tip:</p>
+              <p>Click directly anywhere on the map grid to simulate moving the tourist. The system recalculates route deviation and risk index metrics immediately.</p>
+            </div>
+
+          </div>
+
+          <!-- SVG Vector Map Center -->
+          <div class="lg:col-span-9 bg-slate-900 rounded-2xl border border-slate-700 shadow-2xl p-4 overflow-hidden flex flex-col">
+            <!-- Coordinates Bar -->
+            <div class="flex justify-between items-center text-slate-400 text-[10px] mb-2 font-mono border-b border-slate-800 pb-2">
+              <span>WGS-84 Coordinate Mesh (Offline Grid Map)</span>
+              <span class="text-white flex items-center gap-1"><span class="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span> Live Coordinates: Lat <strong v-text="touristProfile.latitude.toFixed(5)"></strong>, Long <strong v-text="touristProfile.longitude.toFixed(5)"></strong></span>
+            </div>
+
+            <!-- SVG Map Wrapper -->
+            <div class="relative w-full h-[500px] border border-slate-800 bg-slate-950 rounded-lg overflow-hidden cursor-crosshair" @click="handleMapClick">
+              
+              <!-- GRID LINES -->
+              <div class="absolute inset-0 pointer-events-none opacity-20" style="background-image: radial-gradient(circle, #334155 1px, transparent 1px); background-size: 40px 40px;"></div>
+              
+              <!-- Contour Topology Lines Overlay -->
+              <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-20" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <path d="M-10,30 Q20,10 40,35 T90,20 T120,40" fill="none" stroke="#64748b" stroke-width="0.3"></path>
+                <path d="M-10,40 Q25,20 45,45 T95,30 T120,50" fill="none" stroke="#64748b" stroke-width="0.3"></path>
+                <path d="M-10,70 Q30,50 60,75 T110,60" fill="none" stroke="#64748b" stroke-width="0.3"></path>
+                <path d="M10,95 Q50,65 80,95" fill="none" stroke="#64748b" stroke-width="0.3"></path>
+              </svg>
+
+              <!-- INTERACTIVE VECTOR LAYERS -->
+              <svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <!-- Dynamic Hazard Zones -->
+                <polygon v-for="haz in locationsConfig[selectedLocationKey].hazards" 
+                         :points="haz.points" :fill="haz.color" fill-opacity="0.25" :stroke="haz.color" stroke-dasharray="1,1" stroke-width="0.5"></polygon>
+                <text v-for="haz in locationsConfig[selectedLocationKey].hazards" 
+                      :x="haz.textX" :y="haz.textY" :fill="haz.color" font-size="2" font-weight="bold" v-text="haz.name"></text>
+
+                <!-- Recommended Route B / K / M -->
+                <polyline :points="locationsConfig[selectedLocationKey].routePoints" fill="none" stroke="#10b981" stroke-dasharray="1.5,1.5" stroke-width="1.2"></polyline>
+                <text x="35" y="45" fill="#34d399" font-size="2" font-weight="bold" v-text="locationsConfig[selectedLocationKey].routeName"></text>
+
+                <!-- High Hazard Path Route C / Alternate -->
+                <polyline :points="locationsConfig[selectedLocationKey].routeAltPoints" fill="none" stroke="#eab308" stroke-dasharray="1.5,1.5" stroke-width="0.8"></polyline>
+                <text x="60" y="32" fill="#facc15" font-size="2" v-text="locationsConfig[selectedLocationKey].routeAltName"></text>
+              </svg>
+
+              <!-- DYNAMIC POIS PLACEMENT -->
+              <div v-for="poi in locationsConfig[selectedLocationKey].pois" 
+                   :class="['absolute w-5 h-5 text-white font-bold text-[9px] rounded flex items-center justify-center border border-white shadow cursor-pointer hover:scale-110 transition', 
+                            poi.type === 'H' ? 'bg-purple-700' : poi.type === 'P' ? 'bg-blue-750 bg-blue-700 rounded-full' : 'bg-emerald-600']"
+                   :style="{ left: poi.x + '%', top: poi.y + '%', transform: 'translate(-50%, -50%)' }"
+                   @click.stop="openPoiDetails(poi.name, poi.desc + ' | Location focus: ' + locationsConfig[selectedLocationKey].name)">
+                <span v-text="poi.type"></span>
+              </div>
+              
+              <!-- POI labels on map -->
+              <div v-for="poi in locationsConfig[selectedLocationKey].pois" 
+                   class="absolute text-[8px] text-slate-300 font-bold bg-slate-950/80 px-1 py-0.5 rounded border border-slate-800"
+                   :style="{ left: poi.x + '%', top: (poi.y + 4.5) + '%', transform: 'translate(-50%, -50%)' }"
+                   v-text="poi.name.split(' ')[0]">
+              </div>
+
+              <!-- RESCUE TEAMS (Mirroring Command Grid) -->
+              <div class="absolute w-6 h-6 bg-purple-600 rounded-full border-2 border-white shadow flex items-center justify-center text-[10px] text-white font-black cursor-pointer hover:scale-110 transition"
+                   style="left: 45%; top: 42%; transform: translate(-50%, -50%);"
+                   @click.stop="openPoiDetails('Rescue Team Alpha (SDRF)', 'Assigned Unit. Carrying GPS satellite repeater & trauma kits.')">
+                A
+              </div>
+              <div class="absolute text-[7px] text-white font-bold bg-purple-950 border border-purple-800 px-1 rounded"
+                   style="left: 45%; top: 38%; transform: translate(-50%, -50%);">
+                Team Alpha
+              </div>
+
+              <!-- TARGET TOURIST T (GLOWING BLUE RADAR) -->
+              <div class="absolute transition-all duration-300"
+                   :style="{ left: touristMapX + '%', top: touristMapY + '%' }">
+                
+                <div v-if="sosStatus === 'active'" class="sonar-wave" style="left: -12px; top: -12px; width: 32px; height: 32px;"></div>
+                
+                <div :class="['w-5 h-5 rounded-full border-2 border-white shadow cursor-pointer relative z-10 flex items-center justify-center text-[8px] text-white font-bold font-mono',
+                             sosStatus === 'active' ? 'bg-red-600 animate-bounce' : 'bg-sky-500 pulse-radar']"
+                     @click.stop="openPoiDetails(loggedInUsername + ' (You)', 'Trip Status: ' + (sosStatus === 'active' ? 'SOS DISTRESS' : 'ACTIVE') + ' | Safety Index: ' + (100-calculatedRisk) + '/100')">
+                  T
+                </div>
+              </div>
+
+              <!-- Information Popup overlay -->
+              <div v-if="mapPopup" class="absolute bottom-4 left-4 right-4 bg-slate-900/95 border border-slate-700 rounded-lg p-3 shadow-xl z-20 text-white flex items-start justify-between">
+                <div>
+                  <h4 class="font-extrabold text-xs text-sky-400" v-text="mapPopup.title"></h4>
+                  <p class="text-[10px] text-slate-400 mt-1" v-text="mapPopup.description"></p>
+                </div>
+                <button @click="mapPopup = null" class="text-white hover:text-red-400 text-xs font-bold px-1">&times;</button>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ==============================================
+           5. SOS EMERGENCY CENTER
+           ============================================== -->
+      <div v-if="currentPage === 'sos'" class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 fade-in">
+        
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
+          <div class="bg-red-700 p-6 text-white text-center space-y-2">
+            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-white/20 text-white uppercase tracking-widest animate-pulse">
+              🚨 Off-Grid SOS Transmitter
+            </span>
+            <h1 class="text-3xl font-black">Distress Emergency Center</h1>
+            <p class="text-xs text-red-100 max-w-lg mx-auto">
+              If cellular connection is unavailable, this dashboard triggers edge AI to compress coordinates and battery stats into an SMS or LoRa-ready packet.
+            </p>
+          </div>
+
+          <div class="p-8 flex flex-col items-center justify-center space-y-8">
+            
+            <!-- Dial Trigger button -->
+            <div v-if="sosStatus === 'inactive'" class="flex flex-col items-center">
+              <button @click="triggerSosQuick"
+                      class="w-48 h-48 rounded-full bg-gradient-to-br from-red-600 to-rose-700 text-white flex flex-col items-center justify-center shadow-2xl relative select-none cursor-pointer focus:outline-none ring-8 ring-red-100 border-4 border-white transition transform active:scale-95">
+                <i class="bi bi-exclamation-triangle-fill text-5xl mb-2"></i>
+                <span class="font-black text-sm tracking-widest uppercase block text-center">CLICK TO<br>ACTIVATE SOS</span>
+              </button>
+
+              <p class="text-xs text-slate-500 mt-4 text-center font-medium">Opens an emergency category config modal to package coordinates.</p>
+            </div>
+
+            <!-- Pre-Confirmation holding state -->
+            <div v-if="sosStatus === 'confirming'" class="w-full max-w-md bg-slate-50 p-6 rounded-xl border border-slate-200 space-y-4 shadow-sm">
+              <h3 class="font-extrabold text-base text-red-700 uppercase tracking-wide border-b border-red-100 pb-2">Confirm Distress Emergency</h3>
+              
+              <div class="space-y-4">
+                <div class="space-y-1.5">
+                  <label class="text-xs font-bold text-slate-700 uppercase">Emergency Category:</label>
+                  <select v-model="sosType" class="w-full bg-white border border-slate-300 rounded px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-red-500">
+                    <option value="injury">Medical Injury (Broken bone, bleeding)</option>
+                    <option value="lost">Lost Trail (Isolated in wilderness)</option>
+                    <option value="landslide">Landslide / Mudslide blockage</option>
+                    <option value="flood">Flash Flood / Torrential Rain</option>
+                    <option value="animal">Wildlife Attack / Wildfire</option>
+                    <option value="other">Other Distress Emergency</option>
+                  </select>
+                </div>
+
+                <div class="space-y-1.5">
+                  <label class="text-xs font-bold text-slate-700 uppercase">Telemetry Notes (Optional):</label>
+                  <textarea v-model="sosCustomMsg" placeholder="E.g. Injury detail..." rows="2" class="w-full bg-white border border-slate-300 rounded px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-red-500"></textarea>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                  <button @click="sosStatus = 'inactive'" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2.5 rounded text-xs">Cancel</button>
+                  <button @click="confirmSosSubmit" class="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded text-xs shadow-md">CONFIRM SOS</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Active / Transmitted packet summary -->
+            <div v-if="sosStatus === 'active'" class="w-full max-w-xl space-y-6">
+              
+              <!-- Flashing banner -->
+              <div class="bg-red-50 border border-red-200 p-4 rounded-xl flex items-center gap-3">
+                <span class="flex h-3 w-3 relative">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                </span>
+                <div class="text-xs text-red-900">
+                  <h4 class="font-extrabold uppercase">SOS TELEMETRY TRANSMITTING</h4>
+                  <p class="opacity-90 mt-0.5 font-medium">Edge processor is repeating packet broadcasts over radio networks.</p>
+                </div>
+              </div>
+
+              <!-- Binary Packet Viewer -->
+              <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl text-white font-mono text-xs space-y-4 shadow-inner">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                  <span class="text-slate-400 text-[10px] uppercase font-bold tracking-wider">ENCODED SOS PACKET (88 BYTES)</span>
+                  <span class="text-emerald-400 text-[10px] uppercase font-bold tracking-wider">LORA ENCRYPTED</span>
+                </div>
+                
+                <div class="space-y-1.5 leading-relaxed bg-slate-950 p-3 rounded border border-slate-800 text-slate-300">
+                  <p><strong>SOS_ID:</strong> SOS-104</p>
+                  <p><strong>TOURIST_ID:</strong> <span v-text="touristProfile.id"></span></p>
+                  <p><strong>GEO_COORD:</strong> <span v-text="touristProfile.latitude.toFixed(5) + ', ' + touristProfile.longitude.toFixed(5)"></span></p>
+                  <p><strong>LOCATION:</strong> <span class="uppercase" v-text="locationsConfig[selectedLocationKey].name.split(',')[0]"></span></p>
+                  <p><strong>DIAGNOSTICS:</strong> Risk: <span v-text="calculatedRisk"></span>% | Battery: <span v-text="touristProfile.battery"></span>%</p>
+                  <p><strong>HAZARD_TYPE:</strong> <span class="uppercase font-bold" v-text="sosType"></span></p>
+                  <p><strong>RAW_PAYLOAD:</strong> <span class="text-red-400 break-all" v-text="generateRawPayload()"></span></p>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 text-center text-[10px] text-slate-500">
+                  <div :class="['p-2 rounded border', connectivity === 'online' ? 'bg-emerald-950/40 border-emerald-700' : 'bg-slate-950/60 border-slate-800']">
+                    <span>Internet:</span>
+                    <strong :class="['block mt-0.5', connectivity === 'online' ? 'text-emerald-400' : 'text-red-400']" v-text="connectivity === 'online' ? 'AVAILABLE' : 'UNAVAILABLE'"></strong>
+                  </div>
+                  <div :class="['p-2 rounded border', connectivity === 'limited' ? 'bg-emerald-950/40 border-emerald-700' : 'bg-slate-950/60 border-slate-800']">
+                    <span>Cellular / SMS:</span>
+                    <strong :class="['block mt-0.5', connectivity === 'limited' ? 'text-emerald-400' : 'text-slate-500']" v-text="connectivity === 'limited' ? 'AVAILABLE' : (connectivity === 'online' ? 'STANDBY' : 'UNAVAILABLE')"></strong>
+                  </div>
+                  <div :class="['p-2 rounded border', connectivity === 'offline' ? 'bg-amber-950/40 border-amber-700' : 'bg-slate-950/60 border-slate-800']">
+                    <span>Mesh / LoRa Gateway:</span>
+                    <strong :class="['block mt-0.5', connectivity === 'offline' ? 'text-amber-400' : 'text-slate-500']" v-text="connectivity === 'offline' ? 'ACTIVE (Relay)' : 'STANDBY'"></strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Multi-Level Communication Routing Visual -->
+              <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-3 shadow-inner">
+                <div class="flex items-center justify-between">
+                  <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Active Communication Route</h4>
+                  <span :class="['text-[10px] font-bold px-2 py-0.5 rounded-full uppercase', connectivity === 'online' ? 'bg-emerald-600 text-white' : connectivity === 'limited' ? 'bg-blue-600 text-white' : 'bg-amber-500 text-slate-950']"
+                        v-text="connectivity === 'online' ? 'Level 1 · Internet' : connectivity === 'limited' ? 'Level 2 · Cellular/SMS' : 'Level 3 · Local Mesh Relay'"></span>
+                </div>
+
+                <!-- LEVEL 1: Full internet path -->
+                <div v-if="connectivity === 'online'" class="flex items-center justify-between gap-1 text-[10px] font-bold text-center">
+                  <div class="flex-1 bg-emerald-950/40 border border-emerald-700 rounded-lg p-2.5"><i class="bi bi-globe2 text-emerald-400 text-base block mb-1"></i>Website</div>
+                  <i class="bi bi-arrow-right text-emerald-500 animate-pulse"></i>
+                  <div class="flex-1 bg-emerald-950/40 border border-emerald-700 rounded-lg p-2.5"><i class="bi bi-wifi text-emerald-400 text-base block mb-1"></i>Internet</div>
+                  <i class="bi bi-arrow-right text-emerald-500 animate-pulse"></i>
+                  <div class="flex-1 bg-emerald-950/40 border border-emerald-700 rounded-lg p-2.5"><i class="bi bi-cloud-fill text-emerald-400 text-base block mb-1"></i>Cloud Server</div>
+                  <i class="bi bi-arrow-right text-emerald-500 animate-pulse"></i>
+                  <div class="flex-1 bg-emerald-950/40 border border-emerald-700 rounded-lg p-2.5"><i class="bi bi-display text-emerald-400 text-base block mb-1"></i>Rescue Dashboard</div>
+                </div>
+
+                <!-- LEVEL 2: Cellular / SMS path (no data internet) -->
+                <div v-else-if="connectivity === 'limited'" class="flex items-center justify-between gap-1 text-[10px] font-bold text-center">
+                  <div class="flex-1 bg-blue-950/40 border border-blue-700 rounded-lg p-2.5"><i class="bi bi-globe2 text-blue-400 text-base block mb-1"></i>Website</div>
+                  <i class="bi bi-arrow-right text-blue-500 animate-pulse"></i>
+                  <div class="flex-1 bg-blue-950/40 border border-blue-700 rounded-lg p-2.5"><i class="bi bi-broadcast text-blue-400 text-base block mb-1"></i>Cell Tower (SMS)</div>
+                  <i class="bi bi-arrow-right text-blue-500 animate-pulse"></i>
+                  <div class="flex-1 bg-blue-950/40 border border-blue-700 rounded-lg p-2.5"><i class="bi bi-hdd-network-fill text-blue-400 text-base block mb-1"></i>Gateway Relay</div>
+                  <i class="bi bi-arrow-right text-blue-500 animate-pulse"></i>
+                  <div class="flex-1 bg-blue-950/40 border border-blue-700 rounded-lg p-2.5"><i class="bi bi-display text-blue-400 text-base block mb-1"></i>Rescue Dashboard</div>
+                </div>
+
+                <!-- LEVEL 3: No cellular - mesh hop via nearby tourist devices -->
+                <div v-else class="space-y-2">
+                  <div class="flex items-center justify-between gap-1 text-[10px] font-bold text-center">
+                    <div class="flex-1 bg-amber-950/40 border border-amber-600 rounded-lg p-2.5"><i class="bi bi-phone text-amber-400 text-base block mb-1"></i>Tourist A (You)</div>
+                    <i class="bi bi-arrow-right text-amber-500 animate-pulse"></i>
+                    <div class="flex-1 bg-amber-950/40 border border-amber-600 rounded-lg p-2.5"><i class="bi bi-bluetooth text-amber-400 text-base block mb-1"></i>Tourist B</div>
+                    <i class="bi bi-arrow-right text-amber-500 animate-pulse"></i>
+                    <div class="flex-1 bg-amber-950/40 border border-amber-600 rounded-lg p-2.5"><i class="bi bi-bluetooth text-amber-400 text-base block mb-1"></i>Tourist C</div>
+                    <i class="bi bi-arrow-right text-amber-500 animate-pulse"></i>
+                    <div class="flex-1 bg-amber-950/40 border border-amber-600 rounded-lg p-2.5"><i class="bi bi-router-fill text-amber-400 text-base block mb-1"></i>Rescue Gateway</div>
+                  </div>
+                  <p class="text-[10px] text-amber-500/80 text-center font-medium">No cellular signal detected — packet hops device-to-device (Bluetooth / Wi-Fi Direct / LoRa) until it reaches a connected gateway.</p>
+                </div>
+              </div>
+
+              <!-- Status Pipeline -->
+              <div class="space-y-3 bg-slate-50 border border-slate-200 p-4 rounded-xl shadow-sm">
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Transmission Log Pipeline:</h4>
+                <div class="space-y-2 text-[11px] font-mono">
+                  <div class="flex items-center gap-2 text-emerald-700">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                    <span>[14:35:02] SOS packet packaged and compressed locally on device.</span>
+                  </div>
+                  <div class="flex items-center gap-2 text-emerald-700">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                    <span v-if="connectivity === 'online'">[14:35:05] Broadcasting over Internet/Cloud channel (Level 1).</span>
+                    <span v-else-if="connectivity === 'limited'">[14:35:05] Broadcasting over Cellular/SMS channel (Level 2).</span>
+                    <span v-else>[14:35:05] No cellular signal — relaying via local mesh hop (Level 3).</span>
+                  </div>
+                  <div class="flex items-center gap-2 text-emerald-700">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping"></span>
+                    <span>[14:35:12] Alert acknowledged by Rescue Command Center. Dispatch pending.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="text-center pt-2">
+                <button @click="resolveSosLocal" class="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold px-5 py-2 rounded text-xs">
+                  Cancel SOS / Mark Resolved
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ==============================================
+           6. RESCUE COMMAND DASHBOARD
+           ============================================== -->
+      <div v-if="currentPage === 'dashboard'" class="bg-slate-950 min-h-screen text-slate-100 py-6 fade-in">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+          
+          <!-- Command Header -->
+          <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-4 gap-4">
+            <div>
+              <span class="text-xs font-bold text-red-500 uppercase tracking-wider flex items-center gap-1.5 animate-pulse">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-600"></span> SDRF Emergency Control Node - <span v-text="locationsConfig[selectedLocationKey].name"></span>
+              </span>
+              <h1 class="text-3xl font-black tracking-tight text-white mt-1">SafeTour AI — Rescue Command Center</h1>
+              <p class="text-xs text-slate-400">Authorized Disaster Response Operations Dashboard | Regional Tactical View</p>
+            </div>
+            
+            <!-- Dashboard Sub-tabs -->
+            <div class="flex bg-slate-900 border border-slate-800 rounded-lg p-1 text-xs">
+              <button @click="dashboardSubTab = 'live'" :class="['px-4 py-2 rounded font-bold transition', dashboardSubTab === 'live' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white']">Live Command Map</button>
+              <button @click="dashboardSubTab = 'incidents'" :class="['px-4 py-2 rounded font-bold transition', dashboardSubTab === 'incidents' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white']">Incidents Log</button>
+              <button @click="dashboardSubTab = 'tourists'" :class="['px-4 py-2 rounded font-bold transition', dashboardSubTab === 'tourists' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white']">Tourist Track</button>
+            </div>
+          </div>
+
+          <!-- Statistics Bar -->
+          <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl text-center">
+              <span class="text-[10px] text-slate-500 uppercase font-extrabold block">Active Tourists</span>
+              <span class="text-2xl font-black text-white" v-text="touristsCount"></span>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl text-center">
+              <span class="text-[10px] text-emerald-500 uppercase font-extrabold block">Safe status</span>
+              <span class="text-2xl font-black text-emerald-400" v-text="touristsSafeCount"></span>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl text-center">
+              <span class="text-[10px] text-yellow-500 uppercase font-extrabold block">Medium Risk</span>
+              <span class="text-2xl font-black text-yellow-400" v-text="touristsMediumRiskCount"></span>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl text-center">
+              <span class="text-[10px] text-orange-500 uppercase font-extrabold block">High Risk</span>
+              <span class="text-2xl font-black text-orange-400" v-text="touristsHighRiskCount"></span>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl text-center">
+              <span class="text-[10px] text-red-500 uppercase font-extrabold block">Critical Status</span>
+              <span class="text-2xl font-black text-red-500" v-text="touristsCriticalCount"></span>
+            </div>
+            <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl text-center border-l-4 border-l-red-600">
+              <span class="text-[10px] text-red-400 uppercase font-extrabold block">Active SOS Alerts</span>
+              <span class="text-2xl font-black text-red-500 animate-pulse" v-text="activeSosCount"></span>
+            </div>
+          </div>
+
+          <!-- SUB-TAB: LIVE COMMAND MAP -->
+          <div v-show="dashboardSubTab === 'live'" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Left Command Map -->
+            <div class="lg:col-span-8 bg-slate-900 rounded-xl border border-slate-800 p-4 flex flex-col space-y-4">
+              <div class="flex justify-between items-center text-xs">
+                <span class="font-bold text-slate-400" v-text="locationsConfig[selectedLocationKey].name + ' Tactical Map'"></span>
+                <span class="text-[10px] text-slate-500">100% Offline Grid Active</span>
+              </div>
+              
+              <!-- SVG map mirroring offline view -->
+              <div class="relative w-full h-[450px] border border-slate-805 border-slate-800 bg-slate-950 rounded-lg overflow-hidden">
+                <div class="absolute inset-0 pointer-events-none opacity-20" style="background-image: radial-gradient(circle, #334155 1px, transparent 1px); background-size: 40px 40px;"></div>
+                
+                <!-- Contour overlay -->
+                <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-10" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <path d="M-10,30 Q20,10 40,35 T90,20" fill="none" stroke="#ffffff" stroke-width="0.3"></path>
+                  <path d="M-10,40 Q25,20 45,45 T95,30" fill="none" stroke="#ffffff" stroke-width="0.3"></path>
+                </svg>
+
+                <svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <!-- Dynamic Hazard Zones -->
+                  <polygon v-for="haz in locationsConfig[selectedLocationKey].hazards" 
+                           :points="haz.points" :fill="haz.color" fill-opacity="0.15" :stroke="haz.color" stroke-dasharray="1,1" stroke-width="0.4"></polygon>
+                  <!-- Main trail -->
+                  <polyline :points="locationsConfig[selectedLocationKey].routePoints" fill="none" stroke="#34d399" stroke-dasharray="1.5,1.5" stroke-width="0.8"></polyline>
+                </svg>
+
+                <!-- POIs Placement -->
+                <div v-for="poi in locationsConfig[selectedLocationKey].pois" 
+                     :class="['absolute w-4.5 h-4.5 text-white font-bold text-[8px] rounded flex items-center justify-center border border-white/40 shadow cursor-pointer', 
+                              poi.type === 'H' ? 'bg-purple-700' : poi.type === 'P' ? 'bg-blue-700 rounded-full' : 'bg-emerald-600']"
+                     :style="{ left: poi.x + '%', top: poi.y + '%', transform: 'translate(-50%, -50%)' }">
+                  <span v-text="poi.type"></span>
+                </div>
+
+                <!-- Teams -->
+                <div class="absolute w-5 h-5 bg-purple-650 bg-purple-600 rounded-full border border-white shadow flex items-center justify-center text-[8px] text-white font-black" style="left: 45%; top: 42%; transform: translate(-50%, -50%);">A</div>
+                <div class="absolute text-[6px] text-purple-200 bg-slate-950 px-1 py-0.5 rounded border border-purple-800" style="left: 45%; top: 39%; transform: translate(-50%, -50%);">Team Alpha</div>
+
+                <!-- Tourist ST-1024 -->
+                <div class="absolute transition-all duration-300" :style="{ left: touristMapX + '%', top: touristMapY + '%' }">
+                  <div v-if="sosStatus === 'active'" class="sonar-wave" style="left: -10px; top: -10px; width: 28px; height: 28px;"></div>
+                  <div :class="['w-4.5 h-4.5 rounded-full border border-white shadow flex items-center justify-center text-[7px] text-white font-bold font-mono', 
+                               sosStatus === 'active' ? 'bg-red-600 animate-bounce' : 'bg-sky-500']">
+                    T
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Right SOS Alerts Panel -->
+            <div class="lg:col-span-4 space-y-4">
+              <h3 class="font-bold text-sm text-slate-305 text-slate-300 border-b border-slate-800 pb-2 uppercase tracking-wider">Live SOS Alerts Panel</h3>
+              
+              <div class="space-y-3 custom-scroll overflow-y-auto max-h-[410px]">
+                
+                <!-- SOS 104 (Bound to local state) -->
+                <div v-if="sosStatus === 'active'" class="bg-red-950/60 border-l-4 border-l-red-650 border border-slate-800 p-4 rounded-r-lg space-y-3 shadow-sm">
+                  <div class="flex justify-between items-start">
+                    <div>
+                      <span class="bg-red-900/60 text-red-300 font-bold px-2 py-0.5 rounded text-[9px] uppercase tracking-wider">CRITICAL SOS</span>
+                      <h4 class="font-black text-sm text-white mt-1">SOS-104 (Distress Telemetry)</h4>
+                    </div>
+                    <span class="text-[9px] text-red-400 font-bold">2 min ago</span>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-x-2 gap-y-1.5 text-[11px] text-slate-300 font-mono">
+                    <div>Tourist: <span class="text-white font-bold" v-text="touristProfile.id"></span></div>
+                    <div>Location: <span class="text-white font-bold" v-text="locationsConfig[selectedLocationKey].name.split(',')[0]"></span></div>
+                    <div>Risk Score: <span class="text-red-400 font-bold" v-text="calculatedRisk + '/100'"></span></div>
+                    <div>Battery Index: <span class="text-amber-400 font-bold" v-text="touristProfile.battery + '%'"></span></div>
+                    <div class="col-span-2">Telemetry: <span class="text-white font-bold uppercase" v-text="sosType"></span></div>
+                  </div>
+
+                  <div class="pt-2 flex flex-wrap gap-2">
+                    <button @click="navigate('map')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded text-[10px] font-bold">VIEW LOCATION</button>
+                    
+                    <!-- Assign Team button action -->
+                    <button v-if="!teamDispatchedStatus" @click="openAssignTeamModal('SOS-104')" class="bg-blue-650 bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded text-[10px] font-bold">ASSIGN TEAM</button>
+                    <span v-else class="text-[10px] text-emerald-400 font-bold bg-emerald-955 bg-emerald-950/80 px-2 py-1 rounded border border-emerald-900">TEAM ALPHA DISPATCHED</span>
+                    
+                    <button @click="resolveSosLocal" class="bg-slate-900 hover:bg-slate-800 text-slate-455 text-slate-400 px-2 py-1 rounded text-[10px] hover:text-white">ACKNOWLEDGE</button>
+                  </div>
+                </div>
+
+                <!-- Stub / Historical alerts -->
+                <div class="bg-slate-900 border-l-4 border-l-orange-500 border border-slate-800 p-4 rounded-r-lg space-y-2 shadow-sm">
+                  <div class="flex justify-between items-start">
+                    <div>
+                      <span class="bg-orange-955 bg-orange-950/60 text-orange-300 font-bold px-2 py-0.5 rounded text-[9px] uppercase tracking-wider">HIGH WARNING</span>
+                      <h4 class="font-black text-sm text-white mt-1">SOS-103 (Lost Alert)</h4>
+                    </div>
+                    <span class="text-[9px] text-slate-400">42 min ago</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400 font-mono">Tourist ST-0932 | Munnar Hills | Risk Score 68 | Status: Resolved</p>
+                </div>
+
+                <!-- Empty state placeholder if SOS is resolved -->
+                <div v-if="sosStatus !== 'active'" class="text-center py-8 text-slate-500 text-xs border border-dashed border-slate-800 rounded-lg">
+                  <i class="bi bi-shield-fill-check text-2xl text-slate-600 block mb-2"></i>
+                  <span>No active critical alerts needing rescue dispatch.</span>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+          <!-- SUB-TAB: ACTIVE INCIDENTS TABLE -->
+          <div v-show="dashboardSubTab === 'incidents'" class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4 shadow-sm">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+              <h3 class="font-bold text-lg text-white">Incident & Rescue Action Log</h3>
+              <!-- Table filters -->
+              <div class="flex gap-2">
+                <button @click="incidentFilter = 'all'" :class="['px-3 py-1 rounded text-xs font-bold transition', incidentFilter === 'all' ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-400']">All Logs</button>
+                <button @click="incidentFilter = 'active'" :class="['px-3 py-1 rounded text-xs font-bold transition', incidentFilter === 'active' ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-400']">Active Only</button>
+                <button @click="incidentFilter = 'resolved'" :class="['px-3 py-1 rounded text-xs font-bold transition', incidentFilter === 'resolved' ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-400']">Resolved</button>
+              </div>
+            </div>
+
+            <div class="overflow-x-auto dark-scroll">
+              <table class="w-full text-left text-xs font-mono text-slate-300 min-w-[600px]">
+                <thead>
+                  <tr class="bg-slate-950 text-slate-400 border-b border-slate-800 uppercase tracking-wide">
+                    <th class="p-3">Incident ID</th>
+                    <th class="p-3">Tourist ID</th>
+                    <th class="p-3">Location Focus</th>
+                    <th class="p-3">Incident Type</th>
+                    <th class="p-3">Risk Level</th>
+                    <th class="p-3">Logged Time</th>
+                    <th class="p-3">Assigned Unit</th>
+                    <th class="p-3">Workflow State</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                  <!-- Bound dynamic incident row -->
+                  <tr v-if="sosStatus === 'active' && (incidentFilter === 'all' || incidentFilter === 'active')" class="hover:bg-slate-800 bg-red-950/20 text-white">
+                    <td class="p-3 font-bold text-red-400">SOS-104</td>
+                    <td class="p-3" v-text="touristProfile.id"></td>
+                    <td class="p-3" v-text="locationsConfig[selectedLocationKey].name.split(',')[0]"></td>
+                    <td class="p-3 uppercase text-red-300 font-bold" v-text="sosType"></td>
+                    <td class="p-3 font-extrabold text-red-500">CRITICAL</td>
+                    <td class="p-3">14:35</td>
+                    <td class="p-3 text-purple-405 text-purple-400" v-text="teamDispatchedStatus ? 'Team Alpha (En-Route)' : 'Pending Dispatch'"></td>
+                    <td class="p-3"><span class="bg-red-900 text-red-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase animate-pulse">Active Response</span></td>
+                  </tr>
+
+                  <tr v-for="inc in staticIncidents" :key="inc.id" v-show="incidentFilter === 'all' || incidentFilter === inc.filter" class="hover:bg-slate-800">
+                    <td class="p-3 font-bold text-slate-300" v-text="inc.id"></td>
+                    <td class="p-3" v-text="inc.tourist"></td>
+                    <td class="p-3" v-text="inc.location"></td>
+                    <td class="p-3" v-text="inc.type"></td>
+                    <td class="p-3" :class="inc.riskClass" v-text="inc.risk"></td>
+                    <td class="p-3" v-text="inc.time"></td>
+                    <td class="p-3 text-slate-500 text-slate-400" v-text="inc.team"></td>
+                    <td class="p-3"><span :class="['px-2 py-0.5 rounded text-[10px] font-bold uppercase', inc.statusClass]" v-text="inc.status"></span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- SUB-TAB: REGISTERED TOURISTS REGISTER -->
+          <div v-show="dashboardSubTab === 'tourists'" class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4 shadow-sm">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+              <h3 class="font-bold text-lg text-white">Registered Active Tourists Track</h3>
+              <div class="text-xs text-slate-400 font-mono">Geo-fence Registered List</div>
+            </div>
+
+            <div class="overflow-x-auto dark-scroll">
+              <table class="w-full text-left text-xs font-mono text-slate-400 min-w-[650px]">
+                <thead>
+                  <tr class="bg-slate-950 text-slate-400 border-b border-slate-800 uppercase">
+                    <th class="p-3">Tourist ID</th>
+                    <th class="p-3">Name / Handle</th>
+                    <th class="p-3">Active Trail Route</th>
+                    <th class="p-3 text-center">Risk Metric</th>
+                    <th class="p-3">GPS Coordinate</th>
+                    <th class="p-3">Signal State</th>
+                    <th class="p-3">Telemetry Batt</th>
+                    <th class="p-3">Operations Status</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                  <!-- Bound dynamic tourist -->
+                  <tr @click="openTouristDetails(touristProfile)" class="hover:bg-slate-800 cursor-pointer transition">
+                    <td class="p-3 font-bold text-sky-400" v-text="touristProfile.id"></td>
+                    <td class="p-3 font-bold text-white" v-text="loggedInUsername"></td>
+                    <td class="p-3" v-text="locationsConfig[selectedLocationKey].routeName"></td>
+                    <td class="p-3 text-center">
+                      <span :class="['px-2 py-0.5 rounded text-[10px] font-bold inline-block text-white', 
+                                   calculatedRisk > 80 ? 'bg-red-600' :
+                                   calculatedRisk > 60 ? 'bg-orange-500' :
+                                   calculatedRisk > 30 ? 'bg-yellow-500 text-slate-950' : 'bg-emerald-600']"
+                            v-text="calculatedRisk"></span>
+                    </td>
+                    <td class="p-3" v-text="touristProfile.latitude.toFixed(5) + ', ' + touristProfile.longitude.toFixed(5)"></td>
+                    <td class="p-3 text-emerald-450 text-emerald-450 text-emerald-400 font-bold uppercase">ACTIVE</td>
+                    <td class="p-3" v-text="touristProfile.battery + '%'"></td>
+                    <td class="p-3"><span :class="['px-2 py-0.5 rounded text-[10px] font-bold uppercase text-white', sosStatus === 'active' ? 'bg-red-600 animate-pulse' : 'bg-emerald-600']" v-text="sosStatus==='active'?'SOS DISTRESS':'ON ROUTE'"></span></td>
+                  </tr>
+
+                  <!-- Stubs -->
+                  <tr v-for="trst in staticTourists" :key="trst.id" @click="openTouristDetails(trst)" class="hover:bg-slate-800 cursor-pointer transition">
+                    <td class="p-3 font-bold text-sky-400" v-text="trst.id"></td>
+                    <td class="p-3 font-bold text-white" v-text="trst.name"></td>
+                    <td class="p-3" v-text="trst.route"></td>
+                    <td class="p-3 text-center">
+                      <span :class="['px-2 py-0.5 rounded text-[10px] font-bold inline-block text-white', trst.riskClass]" v-text="trst.risk"></span>
+                    </td>
+                    <td class="p-3" v-text="trst.gps"></td>
+                    <td class="p-3 uppercase" :class="trst.sigClass" v-text="trst.sig"></td>
+                    <td class="p-3" v-text="trst.battery"></td>
+                    <td class="p-3"><span :class="['px-2 py-0.5 rounded text-[10px] font-bold uppercase text-white', trst.statClass]" v-text="trst.status"></span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Detailed Tourist Sidebar Modal -->
+            <div v-if="selectedTouristForDetails" class="bg-slate-950 border border-slate-800 p-5 rounded-lg space-y-4 text-xs">
+              <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                <h4 class="font-extrabold text-sm text-sky-400">Detailed Telemetry Inspector: <span class="text-white" v-text="selectedTouristForDetails.id"></span></h4>
+                <button @click="selectedTouristForDetails = null" class="text-white hover:text-red-500 font-bold">&times;</button>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="space-y-1 bg-slate-900 p-3 rounded">
+                  <p class="text-slate-400">Name: <strong class="text-white" v-text="selectedTouristForDetails.name || loggedInUsername"></strong></p>
+                  <p class="text-slate-400">Active Coordinates: <strong class="text-white font-mono" v-text="selectedTouristForDetails.gps || (selectedTouristForDetails.latitude.toFixed(5) + ', ' + selectedTouristForDetails.longitude.toFixed(5))"></strong></p>
+                  <p class="text-slate-400">Battery Status: <strong class="text-white" v-text="selectedTouristForDetails.battery"></strong></p>
+                </div>
+                <div class="space-y-1 bg-slate-900 p-3 rounded">
+                  <p class="text-slate-400">Trail: <strong class="text-white" v-text="selectedTouristForDetails.route"></strong></p>
+                  <p class="text-slate-400">Connectivity Node: <strong class="text-white uppercase" v-text="selectedTouristForDetails.sig || 'LORA NODE SP-03'"></strong></p>
+                  <p class="text-slate-400">Safety Status: <strong class="text-white uppercase" v-text="selectedTouristForDetails.status || (sosStatus === 'active' ? 'SOS DISTRESS' : 'SAFE')"></strong></p>
+                </div>
+                <div class="space-y-1 bg-slate-900 p-3 rounded">
+                  <p class="text-slate-400">On-Device AI Danger Score:</p>
+                  <p class="text-2xl font-black text-red-550 text-red-500" v-text="selectedTouristForDetails.risk || calculatedRisk"></p>
+                  <p class="text-[9px] text-slate-500">Evaluated locally via edge random forest vectors.</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- TEAM ASSIGNMENT MODAL -->
+        <div v-if="assigningIncidentId" class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-md w-full text-white space-y-4 shadow-2xl animate-all">
+            <h3 class="font-extrabold text-base text-sky-400 border-b border-slate-800 pb-2">Dispatch SDRF Team: <span class="text-white" v-text="assigningIncidentId"></span></h3>
+            
+            <div class="space-y-3">
+              <div v-for="team in rescueTeams" :key="team.name" class="p-3 bg-slate-950 border border-slate-800 rounded flex justify-between items-center text-xs">
+                <div>
+                  <h4 class="font-bold text-white" v-text="team.name"></h4>
+                  <p class="text-[10px] text-slate-400" v-text="'Distance: ' + team.distance + ' | Status: ' + team.status"></p>
+                </div>
+                <button @click="dispatchRescueTeam(team.name)" :disabled="team.status === 'Busy'" 
+                        :class="['px-3 py-1.5 rounded text-[10px] font-bold font-mono transition', 
+                                 team.status === 'Busy' ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 text-white shadow']">
+                  DISPATCH UNIT
+                </button>
+              </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+              <button @click="assigningIncidentId = null" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-4 py-2 rounded text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ==============================================
+           7. ANALYTICS DASHBOARD
+           ============================================== -->
+      <div v-if="currentPage === 'analytics'" class="bg-slate-950 min-h-screen text-slate-100 py-8 fade-in">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+          
+          <div class="flex flex-col sm:flex-row justify-between sm:items-center border-b border-slate-800 pb-4 gap-4">
+            <div>
+              <span class="text-xs font-bold text-indigo-400 uppercase tracking-widest font-mono">System Telemetry & Trends</span>
+              <h1 class="text-3xl font-black text-white">Araku Valley & Regional Safety Analytics</h1>
+              <p class="text-xs text-slate-400">Aggregated historical metrics and current disaster warning indexes.</p>
+            </div>
+            
+            <!-- Date Filter -->
+            <div class="flex bg-slate-900 border border-slate-800 rounded-lg p-1 text-xs font-semibold">
+              <button class="px-3 py-1 bg-blue-600 rounded font-bold">Today</button>
+              <button class="px-3 py-1 text-slate-400 hover:text-white">7 Days</button>
+              <button class="px-3 py-1 text-slate-400 hover:text-white">30 Days</button>
+            </div>
+          </div>
+
+          <!-- Top Stats row -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-slate-900 p-4 rounded-xl border border-slate-855 border-slate-800 text-center shadow-sm">
+              <span class="text-[10px] text-slate-500 text-slate-500 uppercase font-bold block mb-1">Total Tourists Guarded</span>
+              <span class="text-2xl font-black text-white">1,284</span>
+            </div>
+            <div class="bg-slate-900 p-4 rounded-xl border border-slate-855 border-slate-800 text-center shadow-sm">
+              <span class="text-[10px] text-yellow-500 uppercase font-bold block mb-1">Risk Alerts Issued</span>
+              <span class="text-2xl font-black text-yellow-500">174</span>
+            </div>
+            <div class="bg-slate-900 p-4 rounded-xl border border-slate-855 border-slate-800 text-center text-red-500 shadow-sm">
+              <span class="text-[10px] text-red-400 uppercase font-bold block mb-1">Total SOS Alerts</span>
+              <span class="text-2xl font-black">42</span>
+            </div>
+            <div class="bg-slate-900 p-4 rounded-xl border border-slate-855 border-slate-800 text-center shadow-sm">
+              <span class="text-[10px] text-emerald-500 uppercase font-bold block mb-1">Average Dispatch Speed</span>
+              <span class="text-2xl font-black text-emerald-400">18 min</span>
+            </div>
+          </div>
+
+          <!-- Charts Grid -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Chart 1: Safety Trends -->
+            <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 flex flex-col justify-between shadow-sm">
+              <h3 class="font-bold text-xs text-slate-400 uppercase tracking-wider mb-4">Tourist Safety & Geo-compliance Index (30 Days)</h3>
+              <div class="h-64 flex items-center justify-center bg-slate-950 rounded border border-slate-800 p-2">
+                <canvas id="trendChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart 2: Risk distribution -->
+            <div class="bg-slate-900 p-5 rounded-xl border border-slate-800 flex flex-col justify-between shadow-sm">
+              <h3 class="font-bold text-xs text-slate-400 uppercase tracking-wider mb-4">Active Risk Distribution Index</h3>
+              <div class="h-64 flex items-center justify-center bg-slate-950 rounded border border-slate-800 p-2">
+                <canvas id="distributionChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart 3: SOS causes -->
+            <div class="bg-slate-905 bg-slate-900 p-5 rounded-xl border border-slate-800 flex flex-col justify-between shadow-sm">
+              <h3 class="font-bold text-xs text-slate-400 uppercase tracking-wider mb-4">SOS Incident Causes (YTD)</h3>
+              <div class="h-64 flex items-center justify-center bg-slate-950 rounded border border-slate-800 p-2">
+                <canvas id="incidentChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart 4: Response curves -->
+            <div class="bg-slate-905 bg-slate-900 p-5 rounded-xl border border-slate-800 flex flex-col justify-between shadow-sm">
+              <h3 class="font-bold text-xs text-slate-400 uppercase tracking-wider mb-4">Average Rescue Response Speed Curves (m)</h3>
+              <div class="h-64 flex items-center justify-center bg-slate-950 rounded border border-slate-800 p-2">
+                <canvas id="responseChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ==============================================
+           8. ABOUT / TECHNICAL DIAGRAM
+           ============================================== -->
+      <div v-if="currentPage === 'about'" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12 fade-in">
+        
+        <div class="text-center max-w-3xl mx-auto space-y-4">
+          <h1 class="text-3xl font-extrabold text-slate-900">Technical Architecture</h1>
+          <p class="text-slate-600 text-sm">
+            SafeTour AI is designed as a hybrid edge-mesh system that keeps tourists connected and evaluated even in complete cellular and cloud outages.
+          </p>
+        </div>
+
+        <!-- Pipeline Flow chart (Interactive SVG) -->
+        <section class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
+          <h3 class="font-bold text-lg text-slate-900 border-b border-slate-100 pb-2">Integrated Communication Pipeline Fallback</h3>
+          
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            <div class="lg:col-span-8 flex justify-center bg-slate-950 p-6 rounded-xl border border-slate-900">
+              <!-- Inline Architecture SVG flow -->
+              <svg class="w-full max-w-2xl h-auto" viewBox="0 0 600 350" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <line x1="120" y1="40" x2="120" y2="310" stroke="#1e293b" stroke-dasharray="2,2"/>
+                <line x1="280" y1="40" x2="280" y2="310" stroke="#1e293b" stroke-dasharray="2,2"/>
+                <line x1="440" y1="40" x2="440" y2="310" stroke="#1e293b" stroke-dasharray="2,2"/>
+
+                <text x="120" y="25" fill="#475569" font-size="8" font-family="monospace" text-anchor="middle">EDGE CLIENT</text>
+                <text x="280" y="25" fill="#475569" font-size="8" font-family="monospace" text-anchor="middle">FALLBACK NODES</text>
+                <text x="440" y="25" fill="#475569" font-size="8" font-family="monospace" text-anchor="middle">AUTHORITY SERVER</text>
+
+                <!-- Box 1: Tourist Edge Client -->
+                <rect x="20" y="140" width="100" height="70" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+                <text x="70" y="165" fill="#ffffff" font-size="9" font-weight="bold" text-anchor="middle">TOURIST CLIENT</text>
+                <text x="70" y="180" fill="#a7f3d0" font-size="8" text-anchor="middle">Edge AI Prediction</text>
+                <text x="70" y="193" fill="#cbd5e1" font-size="7" text-anchor="middle">GPS + Map Vector</text>
+
+                <!-- Path 1: Cloud/Internet (Upper branch) -->
+                <path d="M120,160 L180,90 L240,90" stroke="#475569" stroke-width="1.5" fill="none" :stroke="connectivity === 'online' ? '#10b981' : '#ef4444'"/>
+                <rect x="230" y="60" width="100" height="55" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+                <text x="280" y="85" fill="#ffffff" font-size="9" font-weight="bold" text-anchor="middle">Cloud Server</text>
+                <text x="280" y="98" fill="#94a3b8" font-size="7" text-anchor="middle">Internet / API Gateway</text>
+                
+                <!-- Path 2: Cellular/SMS (Middle branch) -->
+                <path d="M120,175 L230,175" stroke="#475569" stroke-width="1.5" fill="none" :stroke="connectivity === 'offline' ? '#eab308' : '#64748b'"/>
+                <rect x="230" y="145" width="100" height="55" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+                <text x="280" y="170" fill="#ffffff" font-size="9" font-weight="bold" text-anchor="middle">Cellular / SMS Link</text>
+                <text x="280" y="183" fill="#fbbf24" font-size="7" text-anchor="middle">Cell Tower Relay</text>
+
+                <!-- Path 3: Local Gateway (Lower branch) -->
+                <path d="M120,190 L180,260 L240,260" stroke="#475569" stroke-width="1.5" fill="none" stroke-dasharray="2,2"/>
+                <rect x="230" y="230" width="100" height="55" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+                <text x="280" y="255" fill="#ffffff" font-size="9" font-weight="bold" text-anchor="middle">LoRa Mesh Node</text>
+                <text x="280" y="268" fill="#38bdf8" font-size="7" text-anchor="middle">Local Gateway 868MHz</text>
+
+                <!-- Connection to Rescue Command -->
+                <path d="M330,85 L390,140 L410,140" stroke="#475569" stroke-width="1.5" fill="none" :stroke="connectivity === 'online' ? '#10b981' : '#64748b'"/>
+                <path d="M330,172 L410,172" stroke="#475569" stroke-width="1.5" fill="none" :stroke="connectivity === 'offline' ? '#eab308' : '#64748b'"/>
+                <path d="M330,258 L390,205 L410,205" stroke="#475569" stroke-width="1.5" fill="none" stroke-dasharray="2,2"/>
+
+                <!-- Command Center Box -->
+                <rect x="410" y="130" width="120" height="90" rx="6" fill="#1e1b4b" stroke="#3730a3" stroke-width="2"/>
+                <text x="470" y="155" fill="#ffffff" font-size="9" font-weight="bold" text-anchor="middle">RESCUE COMMAND</text>
+                <text x="470" y="170" fill="#a5b4fc" font-size="8" text-anchor="middle">SDRF Dispatcher</text>
+                <text x="470" y="185" fill="#fca5a5" font-size="7" text-anchor="middle">Live Incidents Monitor</text>
+                <text x="470" y="198" fill="#818cf8" font-size="7" text-anchor="middle">Mesh Gateway Intercept</text>
+
+                <!-- Connected to SDRF Teams -->
+                <path d="M530,175 L565,175" stroke="#10b981" stroke-width="1.5" stroke-dasharray="3,2" fill="none"/>
+                <circle cx="580" cy="175" r="12" fill="#4c1d95" stroke="#a78bfa" stroke-width="1"/>
+                <text x="580" y="178" fill="#ffffff" font-size="8" font-weight="bold" text-anchor="middle">SDRF</text>
+              </svg>
+            </div>
+
+            <!-- Disclaimer Column Right -->
+            <div class="lg:col-span-4 space-y-4">
+              <span class="text-xs font-bold text-indigo-600 uppercase tracking-widest">Network Engineering Disclaimer</span>
+              <h4 class="font-extrabold text-lg text-slate-905 text-slate-900">Credible Off-Grid Communication</h4>
+              <p class="text-xs text-slate-600 leading-relaxed font-medium">
+                SafeTour AI does not claim that software alone can transmit information in complete wireless blackouts. Instead, it utilizes a multi-tier fallback pipeline.
+              </p>
+              
+              <div class="space-y-3 pt-2 text-xs">
+                <div class="p-3 bg-emerald-50 border-l-4 border-l-emerald-605 border-l-emerald-600 rounded shadow-sm">
+                  <h5 class="font-bold text-emerald-950">1. Cloud Server (Internet)</h5>
+                  <p class="text-emerald-900 mt-0.5 opacity-80 font-medium">Full telemetry syncing via HTTPS API when cellular/satellite internet is active.</p>
+                </div>
+                <div class="p-3 bg-yellow-50 border-l-4 border-l-yellow-605 border-l-yellow-600 rounded shadow-sm">
+                  <h5 class="font-bold text-yellow-950">2. Cellular / SMS</h5>
+                  <p class="text-yellow-900 mt-0.5 opacity-80 font-medium">Telemetry is compressed to a base-91 string (88 bytes) sent via custom SMS gateways.</p>
+                </div>
+                <div class="p-3 bg-sky-50 border-l-4 border-l-sky-600 rounded shadow-sm">
+                  <h5 class="font-bold text-sky-950">3. LoRa Mesh Gateway</h5>
+                  <p class="text-sky-900 mt-0.5 opacity-80 font-medium">When cellular links fail, local radio transceivers relay packets to guard shelters.</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+
+    </main>
+
+    <!-- PERSISTENT DEMO SIMULATION WIDGET (FLOATING DRAWER) -->
+    <section :class="['fixed bottom-4 left-4 z-40 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-4 transition-all duration-300 w-80', 
+                     demoPanelOpen ? 'max-h-[500px]' : 'max-h-12 overflow-hidden']">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-2.5 mb-3 cursor-pointer" @click="demoPanelOpen = !demoPanelOpen">
+        <span class="text-xs font-black text-white flex items-center gap-1.5 uppercase tracking-wide">
+          <i class="bi bi-sliders text-indigo-400"></i> SIH Demo Control Panel
+        </span>
+        <button class="text-slate-400 hover:text-white font-bold text-xs">
+          <span v-text="demoPanelOpen ? 'Hide' : 'Show'"></span>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <p class="text-slate-400 text-[11px] font-medium">Select a presentation scenario to dynamically update the tourist profile, offline map coordinates, and Rescue Dashboard logs in real-time.</p>
+        
+        <div class="flex flex-col gap-2">
+          <button @click="triggerDemoScenario('normal')" 
+                  :class="['w-full py-2 px-3 rounded text-left font-bold border transition-all duration-200', 
+                           simScenario === 'normal' ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800']">
+            1. Normal Tourism (Safe Track)
+          </button>
+          <button @click="triggerDemoScenario('lost')" 
+                  :class="['w-full py-2 px-3 rounded text-left font-bold border transition-all duration-200', 
+                           simScenario === 'lost' ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800']">
+            2. Tourist Lost (Drift 300m)
+          </button>
+          <button @click="triggerDemoScenario('rain')" 
+                  :class="['w-full py-2 px-3 rounded text-left font-bold border transition-all duration-200', 
+                           simScenario === 'rain' ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800']">
+            3. Heavy Rain Warning
+          </button>
+          <button @click="triggerDemoScenario('deviation')" 
+                  :class="['w-full py-2 px-3 rounded text-left font-bold border transition-all duration-200', 
+                           simScenario === 'deviation' ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800']">
+            4. Critical Route Deviation (500m+)
+          </button>
+          <button @click="triggerDemoScenario('landslide')" 
+                  :class="['w-full py-2 px-3 rounded text-left font-bold border transition-all duration-200', 
+                           simScenario === 'landslide' ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800']">
+            5. Storm / Landslide Danger
+          </button>
+          <button @click="triggerDemoScenario('emergency')" 
+                  :class="['w-full py-2 px-3 rounded text-left font-bold border transition-all duration-200', 
+                           simScenario === 'emergency' ? 'bg-red-600 text-white border-red-500' : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800']">
+            6. Medical Injury SOS Active 🚨
+          </button>
+          <button @click="triggerDemoScenario('offline')" 
+                  :class="['w-full py-2 px-3 rounded text-left font-bold border transition-all duration-200', 
+                           simScenario === 'offline' ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800']">
+            7. Complete Connectivity Loss
+          </button>
+        </div>
+
+        <div class="border-t border-slate-800 pt-2 flex justify-between items-center text-[10px] text-slate-500 font-mono">
+          <span>Active Mode: <strong class="text-white uppercase" v-text="simScenario"></strong></span>
+          <span>SIH Judge Guide</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-900 border-t border-slate-800 text-slate-400 py-10 mt-auto text-xs">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div class="space-y-2 max-w-sm">
+            <span class="font-extrabold text-white text-base flex items-center gap-1">SafeTour <span class="text-red-500">AI</span></span>
+            <p class="text-slate-400">Offline AI-Enabled Tourist Safety, Risk Prediction and Disaster Rescue Coordination System</p>
+            <p class="text-slate-500 text-[10px]">Designed as an SIH prototype for safer remote tourism.</p>
+          </div>
+          
+          <!-- Quick links -->
+          <div class="flex flex-wrap gap-x-8 gap-y-4 font-semibold text-slate-300 font-sans">
+            <button @click="navigate('home')" class="hover:text-white">Home</button>
+            <button @click="navigate('tourist')" class="hover:text-white">Tourist Safety</button>
+            <button @click="navigate('risk')" class="hover:text-white">Risk Monitor</button>
+            <button @click="navigate('map')" class="hover:text-white">Offline Map</button>
+            <button @click="navigate('sos')" class="hover:text-white">SOS</button>
+            <button @click="navigate('dashboard')" class="hover:text-white">Rescue Dashboard</button>
+            <button @click="navigate('analytics')" class="hover:text-white">Analytics</button>
+            <button @click="navigate('about')" class="hover:text-white">About</button>
+          </div>
+        </div>
+
+        <div class="border-t border-slate-800 pt-6 flex flex-col sm:flex-row justify-between text-slate-500 text-[10px]">
+          <span>© 2026 SafeTour AI - Smart India Hackathon Network</span>
+          <span>Designed with zero network dependencies for extreme off-grid reliability</span>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    const { createApp, ref, onMounted, nextTick } = Vue;
+
+    // ===== BACKEND API CONFIG =====
+    // Points at the Node/Express server in /server. Run it with:
+    //   cd server && npm install && npm start
+    // Change this if you deploy the backend elsewhere.
+    const API_BASE = (window.SAFETOUR_API_BASE) || 'http://localhost:4000/api';
+
+    // Small fetch wrapper. This website is designed to be offline-first, so
+    // every call fails soft: if the backend is unreachable it resolves to
+    // `null` instead of throwing, and callers fall back to local/demo state.
+    async function apiRequest(path, options = {}) {
+      try {
+        const res = await fetch(`${API_BASE}${path}`, {
+          headers: { 'Content-Type': 'application/json' },
+          ...options
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error || `Request failed (${res.status})`);
+        }
+        return await res.json();
+      } catch (err) {
+        console.warn(`[SafeTour API] ${path} unreachable — using local/offline data.`, err.message);
+        return null;
+      }
+    }
+
+    // LOCATION MULTI-CONFIG
+    const locationsConfig = {
+      araku: {
+        name: "Araku Valley, Andhra Pradesh",
+        routeName: "Araku Trek Route B",
+        elevation: "910m",
+        terrain: "Gorges & Deciduous Forests",
+        lat: 18.3275,
+        lon: 82.8775,
+        nearestSafePoint: 'Safe Shelter SP-03 (2.4 km)',
+        nearestHospital: 'Araku Area Hospital (8.7 km)',
+        nearestRescue: 'Forest Guard Post (5.1 km)',
+        pois: [
+          { name: "Araku Area Hospital", type: "H", x: 81.25, y: 75.0, desc: "Trauma unit with emergency disaster beds." },
+          { name: "Police Post & SDRF Depot", type: "P", x: 18.75, y: 33.3, desc: "SDRF disaster rescue warehouse." },
+          { name: "Safe Shelter SP-03", type: "S", x: 50.0, y: 46.6, desc: "Concrete hazard shelter with solar power back." }
+        ],
+        hazards: [
+          { name: "Landslide Zone C", type: "landslide", points: "70,10 90,5 95,25 78,32", color: "#ef4444", textX: 73, textY: 18 },
+          { name: "Flood Risk Zone", type: "flood", points: "35,65 65,75 55,88 30,80", color: "#f97316", textX: 38, textY: 73 }
+        ],
+        routePoints: "12.5,86.6 31.2,63.3 46.8,37.5 68.7,8.3",
+        routeNameOnly: "Araku Trek Route B",
+        routeAltName: "Route C (Landslide Hazard)",
+        routeAltPoints: "46.8,37.5 60,35 75,25 85,15"
+      },
+      kedarnath: {
+        name: "Kedarnath Trail, Uttarakhand",
+        routeName: "Kedarnath Pilgrimage Trail K",
+        elevation: "3,583m",
+        terrain: "High alpine ridge slopes",
+        lat: 30.7352,
+        lon: 79.0669,
+        nearestSafePoint: 'SDRF Rambara Shelter (1.8 km)',
+        nearestHospital: 'Kedarnath Base Clinic (0.9 km)',
+        nearestRescue: 'Kedarnath Helipad Depot (0.4 km)',
+        pois: [
+          { name: "Kedarnath Base Clinic", type: "H", x: 75.0, y: 20.0, desc: "Oxygen supply depot and high-altitude emergency care." },
+          { name: "SDRF Rambara Camp", type: "P", x: 30.0, y: 55.0, desc: "SDRF alpine search and rescue post." },
+          { name: "Rambara Safe Shelter", type: "S", x: 45.0, y: 70.0, desc: "Reinforced structure against cloudburst storms." }
+        ],
+        hazards: [
+          { name: "Avalanche Chute Alpha", type: "avalanche", points: "65,30 85,25 90,45 70,50", color: "#38bdf8", textX: 68, textY: 38 },
+          { name: "Cloudburst Torrent Area", type: "flood", points: "20,60 40,55 35,80 15,75", color: "#ef4444", textX: 22, textY: 68 }
+        ],
+        routePoints: "10,90 25,75 48,60 70,30 85,10",
+        routeNameOnly: "Kedarnath Trail Route K",
+        routeAltName: "Bhairav Path (Cliffs)",
+        routeAltPoints: "48,60 62,55 78,45 82,38"
+      },
+      munnar: {
+        name: "Munnar Hills, Kerala",
+        routeName: "Munnar Tea Valley Route M",
+        elevation: "1,532m",
+        terrain: "Wet highland slopes & estates",
+        lat: 10.0889,
+        lon: 77.0597,
+        nearestSafePoint: 'Tata Estate Office Shelter (1.2 km)',
+        nearestHospital: 'Munnar General Hospital (6.4 km)',
+        nearestRescue: 'Fire & Rescue Station (4.3 km)',
+        pois: [
+          { name: "Munnar General Hospital", type: "H", x: 80.0, y: 65.0, desc: "Equipped with heavy mudslide trauma units." },
+          { name: "Fire & Rescue Outpost", type: "P", x: 25.0, y: 40.0, desc: "Munnar local disaster responders depot." },
+          { name: "Tata Estate Shelter", type: "S", x: 55.0, y: 50.0, desc: "Stone estate warehouse with solar power grids." }
+        ],
+        hazards: [
+          { name: "Mudslide Slip Zone", type: "landslide", points: "55,20 75,15 80,35 60,40", color: "#f97316", textX: 58, textY: 28 },
+          { name: "Flash Creek Basin", type: "flood", points: "15,45 35,50 30,70 10,65", color: "#ef4444", textX: 18, textY: 58 }
+        ],
+        routePoints: "8,85 22,68 38,55 58,42 78,25",
+        routeNameOnly: "Tea Valley Route M",
+        routeAltName: "Anamudi Cliff Path",
+        routeAltPoints: "38,55 50,58 65,52 82,45"
+      }
+    };
+
+    createApp({
+      setup() {
+        // AUTHENTICATION STATE
+        const userRole = ref('guest'); // 'guest', 'tourist', 'authority'
+        const loggedInUsername = ref('');
+        const touristLoginUsername = ref('');
+        const touristLoginPhone = ref('');
+        const authLoginUsername = ref('');
+        const authLoginPassword = ref('');
+
+        const setLoginTab = (role) => {
+          // Can pre-configure settings if needed
+        };
+
+        const fillDemoCreds = (role) => {
+          if (role === 'tourist') {
+            touristLoginUsername.value = 'rajesh_trekker';
+            touristLoginPhone.value = '9876543210';
+          } else {
+            authLoginUsername.value = 'command_sdrf';
+            authLoginPassword.value = 'admin123';
+          }
+        };
+
+        const authToken = ref('');
+
+        const submitTouristLogin = async () => {
+          if (!touristLoginUsername.value) {
+            showToast('Authentication Error', 'Please enter a username to log in.', 'error');
+            return;
+          }
+
+          const result = await apiRequest('/auth/tourist-login', {
+            method: 'POST',
+            body: JSON.stringify({ username: touristLoginUsername.value, phone: touristLoginPhone.value })
+          });
+
+          userRole.value = 'tourist';
+          loggedInUsername.value = touristLoginUsername.value;
+
+          if (result) {
+            authToken.value = result.token;
+            touristProfile.value.id = result.touristId;
+            touristProfile.value.name = result.name;
+            showToast('Tourist Authenticated', `Welcome back, ${touristLoginUsername.value}. SafeTour AI unlocked.`, 'success');
+          } else {
+            showToast('Tourist Authenticated (Offline)', `Backend unreachable — continuing in local offline mode for ${touristLoginUsername.value}.`, 'warning');
+          }
+
+          addSystemLog(`Tourist ${touristLoginUsername.value} logged in.`);
+          navigate('tourist');
+        };
+
+        const submitAuthorityLogin = async () => {
+          if (!authLoginUsername.value || !authLoginPassword.value) {
+            showToast('Authorization Denied', 'Commander username and security password are required.', 'error');
+            return;
+          }
+
+          const result = await apiRequest('/auth/authority-login', {
+            method: 'POST',
+            body: JSON.stringify({ username: authLoginUsername.value, password: authLoginPassword.value })
+          });
+
+          if (result) {
+            authToken.value = result.token;
+            userRole.value = 'authority';
+            loggedInUsername.value = result.name;
+            showToast('Authority Access Granted', 'SDRF tactical dashboard systems unlocked.', 'success');
+          } else if (authLoginPassword.value === 'admin123') {
+            // Offline fallback so the demo dashboard still opens without the backend running.
+            userRole.value = 'authority';
+            loggedInUsername.value = 'Commander SDRF';
+            showToast('Authority Access Granted (Offline)', 'Backend unreachable — tactical dashboard unlocked in local offline mode.', 'warning');
+          } else {
+            showToast('Authorization Denied', 'Invalid Commander username or security password.', 'error');
+            return;
+          }
+
+          addSystemLog(`SDRF Commander authenticated under user node: ${authLoginUsername.value}.`);
+          navigate('dashboard');
+          refreshDashboardData();
+        };
+
+        const logout = () => {
+          userRole.value = 'guest';
+          loggedInUsername.value = '';
+          touristLoginUsername.value = '';
+          touristLoginPhone.value = '';
+          authLoginUsername.value = '';
+          authLoginPassword.value = '';
+          showToast('Authentication System', 'Logged out successfully. Safety profiles closed.', 'info');
+          addSystemLog('User logged out. Credentials cleared.');
+          navigate('home');
+        };
+
+        // NAVIGATIONAL STATE
+        const currentPage = ref('home');
+        const dashboardSubTab = ref('live');
+        const mobileMenuOpen = ref(false);
+        const demoPanelOpen = ref(true);
+
+        // GLOBAL CONFIG
+        const connectivity = ref('limited'); // 'online', 'offline'
+        const gpsStatus = ref('active'); // 'active', 'disabled'
+        const offlineMapReady = ref(true);
+        const aiEngineReady = ref(true);
+
+        // GEOLOCATION STATE SELECTOR
+        const selectedLocationKey = ref('araku');
+
+        const changeLocation = () => {
+          const loc = locationsConfig[selectedLocationKey.value];
+          
+          // Update profile fields
+          touristProfile.value.trip = loc.name + " Trek";
+          touristProfile.value.route = loc.routeName;
+          touristProfile.value.latitude = loc.lat;
+          touristProfile.value.longitude = loc.lon;
+          touristProfile.value.nearestSafePoint = loc.nearestSafePoint;
+          touristProfile.value.nearestHospital = loc.nearestHospital;
+          touristProfile.value.nearestRescue = loc.nearestRescue;
+          touristProfile.value.distanceDev = 0;
+
+          // Project default map coords
+          touristMapX.value = 46.8;
+          touristMapY.value = 37.5;
+          riskSliders.value.deviation = 0;
+          recalculateRisk();
+
+          showToast('Location Refreshed', `Boundary geofences updated to ${loc.name}.`, 'success');
+          addSystemLog(`Geo-location shifted to ${loc.name}. Coordinates bounds adjusted.`);
+        };
+
+        // TOAST NOTIFICATIONS
+        const toastList = ref([]);
+        let toastIdCounter = 0;
+
+        const showToast = (title, message, type = 'info') => {
+          const id = toastIdCounter++;
+          toastList.value.push({ id, title, message, type });
+          setTimeout(() => {
+            dismissToast(id);
+          }, 5000);
+        };
+
+        const dismissToast = (id) => {
+          toastList.value = toastList.value.filter(t => t.id !== id);
+        };
+
+        // TOURIST DATA STATE
+        const touristProfile = ref({
+          id: 'ST-1024',
+          name: 'Rajesh Kumar',
+          trip: 'Araku Valley Trek',
+          route: 'Araku Trek Route B',
+          battery: 68,
+          latitude: 18.3275,
+          longitude: 82.8775,
+          distanceDev: 45,
+          nearestSafePoint: 'Safe Shelter SP-03 (2.4 km)',
+          nearestHospital: 'Araku Area Hospital (8.7 km)',
+          nearestRescue: 'Forest Guard Post (5.1 km)'
+        });
+
+        // Map XY projection coefficients (to transform coordinates into SVG percents)
+        const touristMapX = ref(46.8); 
+        const touristMapY = ref(37.5);
+
+        // SVG POI click popup
+        const mapPopup = ref(null);
+
+        // AI SLIDERS & REC ENGINE STATE
+        const riskSliders = ref({
+          weather: 'clear', // 'clear', 'rain', 'heavy_rain', 'storm'
+          deviation: 0, // meters
+          terrain: 'safe', // 'safe', 'moderate', 'high_risk'
+          time: 'morning', // 'morning', 'afternoon', 'evening', 'night'
+          crowd: 'medium' // 'low', 'medium', 'high'
+        });
+
+        const calculatedRisk = ref(32);
+        const riskLevelText = ref('LOW');
+        const deviationStatus = ref('You are on the recommended route.');
+        const deviationLevel = ref('safe');
+        const lastRiskChange = ref('');
+
+        // Recalculates risk dynamically based on sliders
+        const recalculateRisk = () => {
+          let score = 5; // Baseline Location risk constant
+
+          // Weather
+          if (riskSliders.value.weather === 'clear') score += 5;
+          else if (riskSliders.value.weather === 'rain') score += 12;
+          else if (riskSliders.value.weather === 'heavy_rain') score += 20;
+          else if (riskSliders.value.weather === 'storm') score += 25;
+
+          // Deviation
+          const dev = riskSliders.value.deviation;
+          if (dev <= 50) score += 2;
+          else if (dev <= 150) score += 8;
+          else if (dev <= 350) score += 17;
+          else score += 25;
+
+          // Terrain
+          if (riskSliders.value.terrain === 'safe') score += 3;
+          else if (riskSliders.value.terrain === 'moderate') score += 10;
+          else if (riskSliders.value.terrain === 'high_risk') score += 20;
+
+          // Time of Day
+          if (riskSliders.value.time === 'morning') score += 2;
+          else if (riskSliders.value.time === 'afternoon') score += 4;
+          else if (riskSliders.value.time === 'evening') score += 10;
+          else if (riskSliders.value.time === 'night') score += 15;
+
+          // Crowds (low crowd is a danger factor in remote regions)
+          if (riskSliders.value.crowd === 'high') score += 2;
+          else if (riskSliders.value.crowd === 'medium') score += 4;
+          else if (riskSliders.value.crowd === 'low') score += 10;
+
+          const oldScore = calculatedRisk.value;
+          calculatedRisk.value = Math.min(score, 100);
+
+          // Classify risk level text
+          if (calculatedRisk.value > 80) riskLevelText.value = 'CRITICAL';
+          else if (calculatedRisk.value > 60) riskLevelText.value = 'HIGH';
+          else if (calculatedRisk.value > 30) riskLevelText.value = 'MEDIUM';
+          else riskLevelText.value = 'LOW';
+
+          // Deviation level text
+          if (riskSliders.value.deviation === 0) {
+            deviationLevel.value = 'safe';
+            deviationStatus.value = 'You are on the recommended route.';
+          } else if (riskSliders.value.deviation <= 100) {
+            deviationLevel.value = 'warning';
+            deviationStatus.value = 'You are slightly away from the recommended route.';
+          } else if (riskSliders.value.deviation <= 300) {
+            deviationLevel.value = 'high';
+            deviationStatus.value = 'Route deviation detected.';
+          } else {
+            deviationLevel.value = 'critical';
+            deviationStatus.value = 'Critical route deviation. You may be entering a hazardous zone.';
+          }
+
+          if (oldScore !== calculatedRisk.value) {
+            lastRiskChange.value = `${oldScore} → ${calculatedRisk.value}`;
+          }
+
+          computeForecast();
+        };
+
+        // ===== AI PREDICTIVE RISK FORECAST =====
+        const forecastWarning = ref('');
+        const computeForecast = () => {
+          const base = calculatedRisk.value;
+          // Trend pressure derived from current inputs (synthetic edge-model heuristic)
+          const weatherTrend = riskSliders.value.weather === 'storm' ? 6 : riskSliders.value.weather === 'heavy_rain' ? 4.5 : riskSliders.value.weather === 'rain' ? 2 : 0.2;
+          const timeTrend = riskSliders.value.time === 'afternoon' ? 3 : riskSliders.value.time === 'morning' ? 1 : 0.5; // risk tends to climb toward evening/night
+          const devTrend = riskSliders.value.deviation > 100 ? 2.5 : 0.3;
+
+          const forecast = [Math.round(base)];
+          for (let i = 1; i <= 4; i++) {
+            const next = forecast[i - 1] + weatherTrend + (timeTrend * 0.6) + devTrend + (Math.random() * 2 - 0.5);
+            forecast.push(Math.max(0, Math.min(100, Math.round(next))));
+          }
+          predictiveForecast.value = forecast;
+
+          const peak = Math.max(...forecast);
+          if (peak > 80 && base <= 80) {
+            const hoursOut = forecast.findIndex(v => v > 80);
+            forecastWarning.value = `High probability of route becoming CRITICAL within ~${hoursOut} hour(s) if conditions persist. Consider returning to a safe point now.`;
+          } else if (peak > 60 && base <= 60) {
+            forecastWarning.value = `Risk trending upward — model predicts HIGH risk levels within the forecast window.`;
+          } else {
+            forecastWarning.value = '';
+          }
+
+          renderPredictiveChart();
+        };
+
+        const predictiveForecast = ref([32, 34, 35, 33, 36]);
+
+        const renderPredictiveChart = () => {
+          const ctx = document.getElementById('predictiveChart');
+          if (!ctx) return; // chart not visible on this page yet
+          if (chartInstances.predictiveChart) {
+            chartInstances.predictiveChart.data.datasets[0].data = predictiveForecast.value;
+            chartInstances.predictiveChart.update();
+            return;
+          }
+          chartInstances.predictiveChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: ['Now', '+1h', '+2h', '+3h', '+4h'],
+              datasets: [{
+                label: 'Predicted Risk Score',
+                data: predictiveForecast.value,
+                borderColor: '#6366f1',
+                backgroundColor: 'rgba(99,102,241,0.12)',
+                fill: true,
+                tension: 0.35,
+                pointBackgroundColor: '#6366f1',
+                pointRadius: 4
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { min: 0, max: 100, grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8', stepSize: 25 } },
+                x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+              }
+            }
+          });
+        };
+
+        const getBreakdownScore = (key) => {
+          if (key === 'weather') {
+            if (riskSliders.value.weather === 'clear') return 5;
+            if (riskSliders.value.weather === 'rain') return 12;
+            if (riskSliders.value.weather === 'heavy_rain') return 20;
+            return 25;
+          }
+          if (key === 'deviation') {
+            const dev = riskSliders.value.deviation;
+            if (dev <= 50) return 2;
+            if (dev <= 150) return 8;
+            if (dev <= 350) return 17;
+            return 25;
+          }
+          if (key === 'terrain') {
+            if (riskSliders.value.terrain === 'safe') return 3;
+            if (riskSliders.value.terrain === 'moderate') return 10;
+            return 20;
+          }
+          if (key === 'time') {
+            if (riskSliders.value.time === 'morning') return 2;
+            if (riskSliders.value.time === 'afternoon') return 4;
+            if (riskSliders.value.time === 'evening') return 10;
+            return 15;
+          }
+          if (key === 'crowd') {
+            if (riskSliders.value.crowd === 'high') return 2;
+            if (riskSliders.value.crowd === 'medium') return 4;
+            return 10;
+          }
+          return 0;
+        };
+
+        // DYNAMIC ALIGNMENT OF TELEMETRY COORDINATES TO MAP XY PERCENT
+        const updateMapCoordinatesFromSliders = () => {
+          const dev = riskSliders.value.deviation;
+          const loc = locationsConfig[selectedLocationKey.value];
+
+          if (dev === 0) {
+            touristProfile.value.latitude = loc.lat;
+            touristProfile.value.longitude = loc.lon;
+            touristProfile.value.distanceDev = 0;
+            touristMapX.value = 46.8;
+            touristMapY.value = 37.5; 
+          } else if (dev === 100) {
+            touristProfile.value.latitude = loc.lat - 0.001;
+            touristProfile.value.longitude = loc.lon - 0.0015;
+            touristProfile.value.distanceDev = 100;
+            touristMapX.value = 45.0;
+            touristMapY.value = 39.1;
+          } else if (dev === 300) {
+            touristProfile.value.latitude = loc.lat - 0.004;
+            touristProfile.value.longitude = loc.lon - 0.0065;
+            touristProfile.value.distanceDev = 300;
+            touristMapX.value = 38.7;
+            touristMapY.value = 44.1;
+          } else if (dev === 500) {
+            touristProfile.value.latitude = loc.lat - 0.008;
+            touristProfile.value.longitude = loc.lon - 0.0125;
+            touristProfile.value.distanceDev = 520;
+            touristMapX.value = 31.2;
+            touristMapY.value = 50.8;
+          }
+        };
+
+        const simulateDeviationFromPortal = (meters) => {
+          riskSliders.value.deviation = meters;
+          updateMapCoordinatesFromSliders();
+          recalculateRisk();
+          showToast('Telemetry Update', `Tourist simulated location moved ${meters}m off safe route.`, 'info');
+        };
+
+        const resetDeviation = () => {
+          simulateDeviationFromPortal(0);
+          showToast('Safety Return Alert', 'Tourist returned to safe route trail guidelines.', 'success');
+        };
+
+        // INTERACTIVE MAP CLICK MATHEMATICAL CONVERSION
+        const handleMapClick = (event) => {
+          const svgRect = event.currentTarget.getBoundingClientRect();
+          const clickX = event.clientX - svgRect.left;
+          const clickY = event.clientY - svgRect.top;
+
+          const pctX = (clickX / svgRect.width) * 100;
+          const pctY = (clickY / svgRect.height) * 100;
+
+          // Convert XY percent to GPS coords (approx)
+          const loc = locationsConfig[selectedLocationKey.value];
+          let minLon = loc.lon - 0.04;
+          let maxLon = loc.lon + 0.04;
+          let minLat = loc.lat - 0.03;
+          let maxLat = loc.lat + 0.03;
+
+          const lon = minLon + (pctX / 100) * (maxLon - minLon);
+          const lat = minLat + (1 - (pctY / 100)) * (maxLat - minLat);
+
+          touristProfile.value.latitude = lat;
+          touristProfile.value.longitude = lon;
+          touristMapX.value = pctX;
+          touristMapY.value = pctY;
+
+          // Calculate deviation distance (distance to central route point)
+          const distanceDegrees = Math.hypot(lon - loc.lon, lat - loc.lat);
+          const meters = Math.round(distanceDegrees * 111000); // 1 degree = 111km
+          
+          touristProfile.value.distanceDev = Math.min(meters, 500);
+          riskSliders.value.deviation = Math.min(Math.round(meters / 100) * 100, 500);
+
+          recalculateRisk();
+          showToast('GPS Lock Updated', `Pin placed on map. Position: ${lat.toFixed(5)}°N, ${lon.toFixed(5)}°E. Deviation: ${meters}m`, 'info');
+        };
+
+        const openPoiDetails = (title, description) => {
+          mapPopup.value = { title, description };
+        };
+
+        const downloadMap = () => {
+          showToast('Offline System Cache', 'Regional safety map vectors cached to local storage.', 'success');
+        };
+
+        // SOS TRANSMISSION & EMERGENCY PACKET SYSTEM
+        const sosStatus = ref('inactive'); // 'inactive', 'confirming', 'active'
+        const sosType = ref('injury');
+        const sosCustomMsg = ref('');
+
+        const triggerSosQuick = () => {
+          sosStatus.value = 'confirming';
+        };
+
+        const activeSosIncidentId = ref(null);
+
+        const confirmSosSubmit = async () => {
+          sosStatus.value = 'active';
+          recalculateRisk();
+          showToast('CRITICAL SOS ACTIVE', 'Distress telemetry packaged and broadcasted over LORA/Cellular gateways.', 'error');
+
+          const result = await apiRequest('/sos', {
+            method: 'POST',
+            body: JSON.stringify({
+              touristId: touristProfile.value.id,
+              location: touristProfile.value.route,
+              type: sosType.value,
+              risk: riskLevelText.value,
+              lat: touristProfile.value.latitude,
+              lon: touristProfile.value.longitude,
+              battery: touristProfile.value.battery + '%',
+              message: sosCustomMsg.value
+            })
+          });
+
+          if (result) {
+            activeSosIncidentId.value = result.id;
+            addSystemLog(`SOS Broadcast Initiated. Type: ${sosType.value.toUpperCase()} (Incident ${result.id} logged on Rescue Dashboard).`);
+          } else {
+            addSystemLog('SOS Broadcast Initiated. Type: ' + sosType.value.toUpperCase() + ' (backend unreachable — queued locally).');
+          }
+        };
+
+        const resolveSosLocal = async () => {
+          sosStatus.value = 'inactive';
+          teamDispatchedStatus.value = false;
+          showToast('SOS Cleared', 'Emergency SOS signal deactivated by operator.', 'success');
+
+          if (activeSosIncidentId.value) {
+            await apiRequest(`/incidents/${activeSosIncidentId.value}/resolve`, { method: 'PATCH' });
+            activeSosIncidentId.value = null;
+          }
+
+          addSystemLog('SOS Distress Signal cleared.');
+        };
+
+        const generateRawPayload = () => {
+          const lat = touristProfile.value.latitude.toFixed(5);
+          const lon = touristProfile.value.longitude.toFixed(5);
+          const risk = calculatedRisk.value;
+          const batt = touristProfile.value.battery;
+          const msg = sosCustomMsg.value ? sosCustomMsg.value.replace(/\|/g, '').substring(0, 20) : 'INJURY';
+          return `${touristProfile.value.id}|LAT:${lat}|LON:${lon}|BAT:${batt}%|DEV:${touristProfile.value.distanceDev}m|RISK:${risk}%|TYPE:${sosType.value.toUpperCase()}|MSG:${msg.toUpperCase()}`;
+        };
+
+        // RESCUE COMMAND WORKFLOWS
+        const incidentFilter = ref('all');
+        const teamDispatchedStatus = ref(false);
+        const assigningIncidentId = ref(null);
+
+        const rescueTeams = ref([
+          { name: 'Team Alpha (SDRF)', distance: '3.2 km', status: 'Available' },
+          { name: 'Team Bravo (Local Police)', distance: '5.8 km', status: 'Available' },
+          { name: 'Team Charlie (Forest Guard)', distance: '8.1 km', status: 'Busy' }
+        ]);
+
+        const openAssignTeamModal = (id) => {
+          assigningIncidentId.value = id;
+        };
+
+        const dispatchRescueTeam = async (teamName) => {
+          teamDispatchedStatus.value = true;
+          const incidentId = assigningIncidentId.value;
+          assigningIncidentId.value = null;
+          showToast('Dispatch Protocol', `${teamName} dispatched. ETA to coordinates: 12 minutes.`, 'success');
+
+          if (incidentId) {
+            await apiRequest(`/incidents/${incidentId}/dispatch`, {
+              method: 'POST',
+              body: JSON.stringify({ team: teamName })
+            });
+            refreshDashboardData();
+          }
+
+          addSystemLog(`Rescue unit ${teamName} dispatched to ${incidentId || 'SOS-104'} coordinates.`);
+        };
+
+        // DATA REGISTER — populated from the backend when reachable, otherwise
+        // these local fallback values keep the dashboard demo-able offline.
+        const staticIncidents = ref([
+          { id: 'SOS-103', tourist: 'ST-0932', location: 'Munnar Tea Hills', type: 'LOST', risk: 'HIGH', riskClass: 'text-orange-500 font-bold', time: '13:58', team: 'Team Bravo', status: 'RESOLVED', statusClass: 'bg-emerald-955 bg-emerald-900/60 text-emerald-300 border border-emerald-900', filter: 'resolved' },
+          { id: 'SOS-102', tourist: 'ST-0788', location: 'Kedarnath Temple Path', type: 'WEATHER', risk: 'CRITICAL', riskClass: 'text-red-500 font-bold', time: '12:42', team: 'Team Alpha', status: 'RESOLVED', statusClass: 'bg-emerald-955 bg-emerald-900/60 text-emerald-300 border border-emerald-900', filter: 'resolved' }
+        ]);
+
+        const staticTourists = ref([
+          { id: 'ST-1032', name: 'Dr. Amit Patel', route: 'Munnar Tea Trail M', risk: 32, riskClass: 'bg-emerald-605 bg-emerald-600', gps: '10.0812, 77.0515', sig: 'Online', sigClass: 'text-emerald-400', battery: '68%', status: 'ON TRAIL', statClass: 'bg-emerald-600' },
+          { id: 'ST-1041', name: 'Sneha Rao', route: 'Kedarnath Route K', risk: 65, riskClass: 'bg-orange-500', gps: '30.7290, 79.0550', sig: 'Offline', sigClass: 'text-amber-400', battery: '42%', status: 'HIGH RISK', statClass: 'bg-orange-500' }
+        ]);
+
+        const touristsCount = ref(126);
+        const touristsSafeCount = ref(104);
+        const touristsMediumRiskCount = ref(12);
+        const touristsHighRiskCount = ref(7);
+        const touristsCriticalCount = ref(3);
+        const activeSosCount = ref(3);
+        const backendConnected = ref(false);
+
+        // Map a raw backend risk score to the UI's colour classes.
+        const riskClassFor = (score) => {
+          if (score > 80) return 'bg-red-600';
+          if (score > 60) return 'bg-orange-500';
+          if (score > 30) return 'bg-amber-500';
+          return 'bg-emerald-600';
+        };
+
+        // Pull live tourists / incidents / stats from the backend for the
+        // Rescue Dashboard. Silently keeps the local fallback data if the
+        // backend is unreachable (offline-first design).
+        const refreshDashboardData = async () => {
+          const [tourists, incidents, stats] = await Promise.all([
+            apiRequest('/tourists'),
+            apiRequest('/incidents'),
+            apiRequest('/dashboard/stats')
+          ]);
+
+          backendConnected.value = !!(tourists || incidents || stats);
+
+          if (tourists) {
+            staticTourists.value = tourists.map(t => ({
+              id: t.id, name: t.name, route: t.route, risk: t.risk,
+              riskClass: riskClassFor(t.risk), gps: t.gps,
+              sig: t.signal, sigClass: t.signal === 'Online' ? 'text-emerald-400' : 'text-amber-400',
+              battery: t.battery, status: t.status,
+              statClass: riskClassFor(t.risk)
+            }));
+          }
+
+          if (incidents) {
+            staticIncidents.value = incidents.map(i => ({
+              id: i.id, tourist: i.tourist, location: i.location, type: i.type,
+              risk: i.risk, riskClass: i.risk === 'CRITICAL' ? 'text-red-500 font-bold' : 'text-orange-500 font-bold',
+              time: i.time, team: i.team || '—', status: i.status,
+              statusClass: i.status === 'RESOLVED' ? 'bg-emerald-900/60 text-emerald-300 border border-emerald-900' : i.status === 'DISPATCHED' ? 'bg-blue-900/60 text-blue-300 border border-blue-900' : 'bg-red-900/60 text-red-300 border border-red-900',
+              filter: i.status.toLowerCase()
+            }));
+          }
+
+          if (stats) {
+            touristsCount.value = stats.touristsCount;
+            touristsSafeCount.value = stats.touristsSafeCount;
+            touristsMediumRiskCount.value = stats.touristsMediumRiskCount;
+            touristsHighRiskCount.value = stats.touristsHighRiskCount;
+            touristsCriticalCount.value = stats.touristsCriticalCount;
+            activeSosCount.value = stats.activeSosCount;
+          }
+        };
+
+        // SYSTEM LOG PROTOCOL
+        const systemLogs = ref([
+          '[14:20:02] Local regional mesh gateway sync complete.',
+          '[14:25:12] Cache refresh: Offline local vectors loaded.'
+        ]);
+
+        const addSystemLog = (msg) => {
+          const now = new Date();
+          const timestamp = `[${now.toTimeString().split(' ')[0]}]`;
+          systemLogs.value.unshift(`${timestamp} ${msg}`);
+          // Fire-and-forget mirror to the backend; ignored if unreachable.
+          apiRequest('/logs', { method: 'POST', body: JSON.stringify({ message: msg }) });
+        };
+
+        // NAV NAVIGATIONAL LOGIC
+        const navigate = (page) => {
+          // PROTECTED PAGE ACCESS CHECK
+          if (userRole.value === 'guest' && page !== 'home' && page !== 'about' && page !== 'login') {
+            currentPage.value = 'login';
+            showToast('Authentication Required', 'Please log in to access the ' + page.toUpperCase() + ' panel.', 'warning');
+            return;
+          }
+
+          if (userRole.value === 'tourist' && (page === 'dashboard' || page === 'analytics')) {
+            currentPage.value = 'login';
+            showToast('Access Denied', 'SDRF Commander credentials required to view dashboard.', 'error');
+            return;
+          }
+
+          currentPage.value = page;
+          mobileMenuOpen.value = false;
+          mapPopup.value = null;
+
+          if (page === 'analytics') {
+            nextTick(() => {
+              initAnalyticsCharts();
+            });
+          }
+
+          if (page === 'risk') {
+            nextTick(() => {
+              renderPredictiveChart();
+            });
+          }
+
+          if (page === 'dashboard') {
+            refreshDashboardData();
+          }
+        };
+
+        const mockLogin = (role) => {
+          navigate('login');
+          if (role === 'Tourist') {
+            fillDemoCreds('tourist');
+          } else {
+            fillDemoCreds('authority');
+          }
+        };
+
+        const setConnectivity = (state) => {
+          connectivity.value = state;
+          if (state === 'offline') {
+            showToast('Connectivity Lost', 'Simulated Internet connection is down. SafeTour AI is operating on offline-first backup protocols (LORA mesh gateways active).', 'warning');
+          } else {
+            showToast('Network Restored', 'Simulated cloud server sync active. Telemetry uploading.', 'success');
+          }
+        };
+
+        // DEMO SIMULATION HANDLER
+        const simScenario = ref('normal');
+        const triggerDemoScenario = (scenario) => {
+          // Auto login if guest for smooth presentation
+          if (userRole.value === 'guest') {
+            userRole.value = 'tourist';
+            loggedInUsername.value = 'Rajesh Kumar (Guest Logged)';
+            showToast('Auto Login', 'Tourist login auto-completed for scenario demonstration.', 'success');
+          }
+
+          simScenario.value = scenario;
+
+          if (scenario === 'normal') {
+            connectivity.value = 'limited';
+            riskSliders.value.weather = 'clear';
+            riskSliders.value.deviation = 0;
+            riskSliders.value.terrain = 'safe';
+            riskSliders.value.time = 'morning';
+            riskSliders.value.crowd = 'medium';
+            sosStatus.value = 'inactive';
+            updateMapCoordinatesFromSliders();
+            recalculateRisk();
+            showToast('Scenario: Normal Tourism', 'Clear weather. Tourist is safely on marked route trail.', 'success');
+          } 
+          else if (scenario === 'lost') {
+            connectivity.value = 'limited';
+            riskSliders.value.weather = 'clear';
+            riskSliders.value.deviation = 300;
+            riskSliders.value.terrain = 'moderate';
+            riskSliders.value.time = 'afternoon';
+            riskSliders.value.crowd = 'low';
+            sosStatus.value = 'inactive';
+            updateMapCoordinatesFromSliders();
+            recalculateRisk();
+            showToast('Scenario: Tourist Lost', 'Tourist drifts 300m off safe route. Risk index increases.', 'warning');
+          } 
+          else if (scenario === 'rain') {
+            connectivity.value = 'limited';
+            riskSliders.value.weather = 'heavy_rain';
+            riskSliders.value.deviation = 100;
+            riskSliders.value.terrain = 'moderate';
+            riskSliders.value.time = 'afternoon';
+            riskSliders.value.crowd = 'low';
+            sosStatus.value = 'inactive';
+            updateMapCoordinatesFromSliders();
+            recalculateRisk();
+            showToast('Scenario: Heavy Rain', 'Storm system triggers. High weather risks warnings activated.', 'warning');
+          }
+          else if (scenario === 'deviation') {
+            connectivity.value = 'limited';
+            riskSliders.value.weather = 'clear';
+            riskSliders.value.deviation = 500;
+            riskSliders.value.terrain = 'high_risk';
+            riskSliders.value.time = 'evening';
+            riskSliders.value.crowd = 'low';
+            sosStatus.value = 'inactive';
+            updateMapCoordinatesFromSliders();
+            recalculateRisk();
+            showToast('Scenario: Critical Deviation', 'Tourist has strayed 500m+ into unpatrolled gorge areas.', 'error');
+          }
+          else if (scenario === 'landslide') {
+            connectivity.value = 'limited';
+            riskSliders.value.weather = 'storm';
+            riskSliders.value.deviation = 100;
+            riskSliders.value.terrain = 'high_risk';
+            riskSliders.value.time = 'evening';
+            riskSliders.value.crowd = 'low';
+            sosStatus.value = 'inactive';
+            updateMapCoordinatesFromSliders();
+            recalculateRisk();
+            showToast('Scenario: Landslide Hazard', 'High wind storm. Danger alerts active for Route paths.', 'error');
+          }
+          else if (scenario === 'emergency') {
+            connectivity.value = 'limited';
+            riskSliders.value.weather = 'rain';
+            riskSliders.value.deviation = 300;
+            riskSliders.value.terrain = 'moderate';
+            riskSliders.value.time = 'afternoon';
+            riskSliders.value.crowd = 'low';
+            
+            sosStatus.value = 'active';
+            sosType.value = 'injury';
+            sosCustomMsg.value = 'Ankle fracture near gorge';
+            updateMapCoordinatesFromSliders();
+            recalculateRisk();
+            showToast('Scenario: Medical Emergency', 'SOS Distress transmission active. Dispatch units notified on dashboard.', 'error');
+          }
+          else if (scenario === 'offline') {
+            connectivity.value = 'offline';
+            showToast('Scenario: Total Outage', 'Internet down. Local edge calculations, cache maps, and local LoRa SOS remain fully active.', 'warning');
+          }
+        };
+
+        // CHART.JS INITIALIZATION
+        let chartInstances = {};
+        const initAnalyticsCharts = () => {
+          for (let key in chartInstances) {
+            if (chartInstances[key]) chartInstances[key].destroy();
+          }
+
+          // 1. Trend Chart
+          const ctxTrend = document.getElementById('trendChart');
+          if (ctxTrend) {
+            chartInstances.trendChart = new Chart(ctxTrend, {
+              type: 'line',
+              data: {
+                labels: ['Day 5', 'Day 10', 'Day 15', 'Day 20', 'Day 25', 'Day 30'],
+                datasets: [
+                  { label: 'Safety Compliance (%)', data: [94, 91, 88, 92, 95, 91], borderColor: '#10b981', tension: 0.3 },
+                  { label: 'Average Risk index', data: [22, 28, 35, 26, 21, 29], borderColor: '#ef4444', tension: 0.3 }
+                ]
+              },
+              options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#94a3b8' } } }, scales: { y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }, x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } } } }
+            });
+          }
+
+          // 2. Distribution Chart
+          const ctxDist = document.getElementById('distributionChart');
+          if (ctxDist) {
+            chartInstances.distChart = new Chart(ctxDist, {
+              type: 'doughnut',
+              data: {
+                labels: ['Safe (Low Risk)', 'Medium Warning', 'High Risk Warning', 'Active Distress (SOS)'],
+                datasets: [{
+                  data: [104, 12, 7, 3],
+                  backgroundColor: ['#10b981', '#eab308', '#f97316', '#ef4444']
+                }]
+              },
+              options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } } }
+            });
+          }
+
+          // 3. SOS Causes Chart
+          const ctxInc = document.getElementById('incidentChart');
+          if (ctxInc) {
+            chartInstances.incChart = new Chart(ctxInc, {
+              type: 'bar',
+              data: {
+                labels: ['Medical', 'Lost Route', 'Rockfall', 'Flood', 'Other'],
+                datasets: [{
+                  label: 'SOS Counts',
+                  data: [12, 15, 4, 2, 9],
+                  backgroundColor: '#3b82f6'
+                }]
+              },
+              options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#94a3b8' } } }, scales: { y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }, x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } } } }
+            });
+          }
+
+          // 4. Response speed curves
+          const ctxResp = document.getElementById('responseChart');
+          if (ctxResp) {
+            chartInstances.respChart = new Chart(ctxResp, {
+              type: 'bar',
+              data: {
+                labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+                datasets: [
+                  { label: 'Dispatch Time (Min)', data: [5, 4, 3, 2], backgroundColor: '#818cf8' },
+                  { label: 'Total Response Speed (Min)', data: [25, 21, 18, 15], backgroundColor: '#a78bfa' }
+                ]
+              },
+              options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#94a3b8' } } }, scales: { y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }, x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } } } }
+            });
+          }
+        };
+
+        const openTouristDetails = (tourist) => {
+          selectedTouristForDetails.value = tourist;
+        };
+        const selectedTouristForDetails = ref(null);
+
+        const apiBaseUrl = API_BASE;
+        const checkBackendHealth = async () => {
+          const result = await apiRequest('/health');
+          backendConnected.value = !!result;
+        };
+
+        onMounted(() => {
+          // Initial configs
+          checkBackendHealth();
+          setInterval(checkBackendHealth, 15000);
+        });
+
+        return {
+          currentPage,
+          dashboardSubTab,
+          mobileMenuOpen,
+          demoPanelOpen,
+          connectivity,
+          gpsStatus,
+          offlineMapReady,
+          aiEngineReady,
+          selectedLocationKey,
+          locationsConfig,
+          changeLocation,
+          toastList,
+          dismissToast,
+          touristProfile,
+          touristMapX,
+          touristMapY,
+          mapPopup,
+          handleMapClick,
+          openPoiDetails,
+          downloadMap,
+          riskSliders,
+          calculatedRisk,
+          riskLevelText,
+          deviationStatus,
+          deviationLevel,
+          lastRiskChange,
+          recalculateRisk,
+          getBreakdownScore,
+          forecastWarning,
+          predictiveForecast,
+          simulateDeviationFromPortal,
+          resetDeviation,
+          sosStatus,
+          sosType,
+          sosCustomMsg,
+          triggerSosQuick,
+          confirmSosSubmit,
+          resolveSosLocal,
+          generateRawPayload,
+          incidentFilter,
+          teamDispatchedStatus,
+          assigningIncidentId,
+          rescueTeams,
+          openAssignTeamModal,
+          dispatchRescueTeam,
+          staticIncidents,
+          staticTourists,
+          touristsCount,
+          touristsSafeCount,
+          touristsMediumRiskCount,
+          touristsHighRiskCount,
+          touristsCriticalCount,
+          activeSosCount,
+          systemLogs,
+          navigate,
+          mockLogin,
+          setConnectivity,
+          simScenario,
+          triggerDemoScenario,
+          openTouristDetails,
+          selectedTouristForDetails,
+
+          // BACKEND INTEGRATION
+          backendConnected,
+          apiBaseUrl,
+          refreshDashboardData,
+
+          // AUTH VALUES
+          userRole,
+          loggedInUsername,
+          touristLoginUsername,
+          touristLoginPhone,
+          authLoginUsername,
+          authLoginPassword,
+          setLoginTab,
+          fillDemoCreds,
+          submitTouristLogin,
+          submitAuthorityLogin,
+          logout
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
