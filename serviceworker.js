@@ -1,4 +1,4 @@
-const CACHE_NAME = "safetour-v4";
+const CACHE_NAME = "safetour-v5";
 const URLS_TO_CACHE = ["/", "/index.html"];
 
 self.addEventListener("install", (event) => {
