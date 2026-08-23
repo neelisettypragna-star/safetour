@@ -58,9 +58,16 @@
       border-radius: 3px;
     }
   </style>
-</head>
 <body class="bg-slate-50 text-slate-900 font-sans min-h-screen flex flex-col transition-all-300">
+
+<!-- 🔔 BELL CODE - IKKADA PASTE CHEY - START -->
+<div id="bell" onclick="document.getElementById('panel').style.display = document.getElementById('panel').style.display==='none'?'block':'none'" style="position:fixed; top:15px; right:15px; background:white; padding:10px 15px; border-radius:50px; box-shadow:0 2px 10px rgba(0,0,0,0.3); cursor:pointer; z-index:9999;">🔔<span id="count" style="background:red;color:white;border-radius:50%;padding:2px 6px;font-size:11px;display:none;">0</span></div>
+<div id="panel" style="display:none; position:fixed; top:60px; right:15px; width:320px; background:white; border-radius:12px; padding:15px; box-shadow:0 5px 20px rgba(0,0,0,0.3); z-index:9999;"><h4>🚨 Family Alerts</h4><div id="list"><p style="color:gray;">No alerts</p></div></div>
+<!-- 🔔 BELL CODE - END -->
+
   <div id="app" class="flex-grow flex flex-col">
+  <!-- FAMILY BOX - DASHBOARD LO PETTU -->
+
 
     <!-- GLOBAL NOTIFICATION TOASTS -->
     <div class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm">
@@ -153,7 +160,6 @@
           </div>
         </div>
       </div>
-
       <!-- Mobile Menu (Dropdown) -->
       <div v-show="mobileMenuOpen" class="xl:hidden bg-slate-900 border-t border-slate-800 px-4 py-3 flex flex-col gap-1">
         <button @click="navigate('home')" :class="['w-full text-left px-3 py-2 rounded-md text-sm font-semibold', currentPage === 'home' ? 'bg-slate-800 text-red-500' : 'text-slate-300 hover:bg-slate-800']">Home</button>
@@ -208,6 +214,8 @@
             <option value="araku">Araku Valley, Andhra Pradesh</option>
             <option value="kedarnath">Kedarnath Trail, Uttarakhand</option>
             <option value="munnar">Munnar Hills, Kerala</option>
+            <option value="manali">Manali, Himachal Pradesh</option>
+            <option value="ooty">Ooty, Tamil Nadu</option>
           </select>
         </div>
       </div>
@@ -301,11 +309,11 @@
             <!-- Left Hero copy -->
             <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
               <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30">
-                <i class="bi bi-shield-fill-check mr-1 text-red-400"></i> Smart India Hackathon 2026 Prototype
+                
               </span>
               <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
                 Safer Tourism.<br>Smarter Response.<br>
-                <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-orange-400 to-amber-300">Even Without Connectivity.</span>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-orange-400 to-amber-300"></span>
               </h1>
               <p class="text-lg text-slate-300 max-w-xl mx-auto lg:mx-0">
                 SafeTour AI leverages edge intelligence, offline spatial analysis, and multi-channel telemetry (SMS, Mesh gateways) to safeguard tourists in remote and hazard-prone destinations.
@@ -581,6 +589,16 @@
             <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
               <h3 class="font-bold text-lg text-slate-900 border-b border-slate-100 pb-2">Active Location Diagnostics</h3>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- FAMILY BOX - DASHBOARD LO -->
+              <!-- FAMILY BOX - DASHBOARD LO -->
+<div style="background:white; padding:15px; border-radius:12px; margin:20px; border:2px solid black; box-shadow:0 4px 10px rgba(0,0,0,0.1);">
+  <h3>👨‍👩‍👧 Add Family Numbers - Secure 🔒</h3>
+  <p style="font-size:12px; color:gray;">Numbers evariki kanapadavu</p>
+  <input id="fam1" type="password" placeholder="Family 1 Number (9876543210)" style="width:100%; padding:10px; margin:5px 0; border-radius:8px; border:1px solid #ccc;">
+  <input id="fam2" type="password" placeholder="Family 2 Number" style="width:100%; padding:10px; margin:5px 0; border-radius:8px; border:1px solid #ccc;">
+  <button onclick="saveFamily()" style="width:100%; padding:10px; background:black; color:white; border-radius:8px; margin-top:5px;">🔒 Save Family - Secure</button>
+  <button onclick="sendAlertToFamily()" style="width:100%; padding:15px; background:red; color:white; border:none; border-radius:30px; font-weight:bold; font-size:16px; margin-top:10px;">🚨 SOS - ALERT FAMILY</button>
+</div>
                 <div class="space-y-2">
                   <div class="flex justify-between text-xs py-1 border-b border-slate-100">
                     <span class="text-slate-500">Current Latitude:</span>
@@ -615,7 +633,7 @@
             <!-- Route Deviation Interactive Selector (Judges Demo Control) -->
             <div class="bg-indigo-50 border border-indigo-200 p-5 rounded-xl">
               <h3 class="font-bold text-sm text-indigo-950 mb-2 flex items-center gap-1.5">
-                <i class="bi bi-sliders text-indigo-600"></i> SIH Demo Control: Route Deviation Simulation
+                <i class="bi bi-sliders text-indigo-600"></i>  Demo Control: Route Deviation Simulation
               </h3>
               <p class="text-xs text-indigo-800 mb-4">Toggle tourist movement on the marked trail routes to demonstrate the dynamic risk alarms.</p>
               <div class="flex flex-wrap gap-2">
@@ -623,7 +641,12 @@
                 <button @click="simulateDeviationFromPortal(100)" :class="['px-3 py-2 rounded text-xs font-bold transition', touristProfile.distanceDev === 100 ? 'bg-indigo-600 text-white shadow' : 'bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-100']">Slight Drift (100m)</button>
                 <button @click="simulateDeviationFromPortal(300)" :class="['px-3 py-2 rounded text-xs font-bold transition', touristProfile.distanceDev === 300 ? 'bg-indigo-600 text-white shadow' : 'bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-100']">High Deviation (300m)</button>
                 <button @click="simulateDeviationFromPortal(500)" :class="['px-3 py-2 rounded text-xs font-bold transition', touristProfile.distanceDev > 500 ? 'bg-indigo-600 text-white shadow' : 'bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-100']">Critical Off-trail (500m+)</button>
+                <button v-if="demoMode" @click="enableLiveGPS()" class="px-3 py-2 rounded text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 ml-auto"><i class="bi bi-broadcast"></i> ENABLE LIVE GPS</button>
+                <button v-else @click="disableLiveGPS()" class="px-3 py-2 rounded text-xs font-bold bg-slate-700 hover:bg-slate-600 text-white flex items-center gap-1.5 ml-auto"><i class="bi bi-broadcast-pin animate-pulse"></i> LIVE GPS ON — Tap to Stop</button>
               </div>
+              <p v-if="!demoMode" class="text-[11px] text-emerald-700 mt-2 font-semibold">
+                📡 Tracking your real device location<span v-if="gpsAccuracy"> · accuracy ±<span v-text="gpsAccuracy"></span>m</span>. Coordinates above update live.
+              </p>
             </div>
 
           </div>
@@ -923,7 +946,17 @@
           
           <!-- Map Status Panel Left -->
           <div class="lg:col-span-3 space-y-6">
-            
+
+            <!-- Location Banner Photo -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <img :src="locationsConfig[selectedLocationKey].image" :alt="locationsConfig[selectedLocationKey].name" class="w-full h-32 object-cover" loading="lazy">
+              <div class="p-3">
+                <p class="text-xs font-bold text-slate-900" v-text="locationsConfig[selectedLocationKey].name"></p>
+                <p class="text-[10px] text-slate-400 mt-0.5" v-text="'Elevation: ' + locationsConfig[selectedLocationKey].elevation"></p>
+                <p class="text-[9px] text-slate-300 mt-1" v-text="'Photo: ' + locationsConfig[selectedLocationKey].imageCredit"></p>
+              </div>
+            </div>
+
             <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
               <h3 class="font-bold text-sm text-slate-900 border-b border-slate-100 pb-2 uppercase tracking-wider">OFFLINE MAP STATUS</h3>
               
@@ -970,8 +1003,20 @@
                   <span class="text-slate-600">Tourist Location (Active)</span>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-3.5 h-3.5 rounded bg-purple-600 text-white font-bold flex items-center justify-center text-[7px] p-0.5 shadow font-mono">R</span>
-                  <span class="text-slate-600">Rescue Node / Safe Point</span>
+                  <span class="w-3.5 h-3.5 rounded bg-purple-700 text-white font-bold flex items-center justify-center text-[7px] p-0.5 shadow font-mono">H</span>
+                  <span class="text-slate-600">Hospital / Trauma Unit</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-3.5 h-3.5 rounded-full bg-blue-700 text-white font-bold flex items-center justify-center text-[7px] p-0.5 shadow font-mono">P</span>
+                  <span class="text-slate-600">Police Post / SDRF Depot</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-3.5 h-3.5 rounded bg-emerald-600 text-white font-bold flex items-center justify-center text-[7px] p-0.5 shadow font-mono">S</span>
+                  <span class="text-slate-600">Safe Shelter Point</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-3.5 h-3.5 rounded bg-amber-500 text-white font-bold flex items-center justify-center text-[7px] p-0.5 shadow font-mono">C</span>
+                  <span class="text-slate-600">Comms Tower / Help Desk</span>
                 </div>
               </div>
             </div>
@@ -1026,7 +1071,7 @@
               <!-- DYNAMIC POIS PLACEMENT -->
               <div v-for="poi in locationsConfig[selectedLocationKey].pois" 
                    :class="['absolute w-5 h-5 text-white font-bold text-[9px] rounded flex items-center justify-center border border-white shadow cursor-pointer hover:scale-110 transition', 
-                            poi.type === 'H' ? 'bg-purple-700' : poi.type === 'P' ? 'bg-blue-750 bg-blue-700 rounded-full' : 'bg-emerald-600']"
+                            poi.type === 'H' ? 'bg-purple-700' : poi.type === 'P' ? 'bg-blue-700 rounded-full' : poi.type === 'C' ? 'bg-amber-500' : 'bg-emerald-600']"
                    :style="{ left: poi.x + '%', top: poi.y + '%', transform: 'translate(-50%, -50%)' }"
                    @click.stop="openPoiDetails(poi.name, poi.desc + ' | Location focus: ' + locationsConfig[selectedLocationKey].name)">
                 <span v-text="poi.type"></span>
@@ -1095,7 +1140,40 @@
           </div>
 
           <div class="p-8 flex flex-col items-center justify-center space-y-8">
-            
+
+            <!-- Emergency Contacts Manager -->
+            <div v-if="sosStatus !== 'active'" class="w-full max-w-xl bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
+              <h3 class="font-extrabold text-xs text-slate-800 uppercase tracking-wider flex items-center gap-1.5"><i class="bi bi-people-fill text-indigo-600"></i> Your Emergency Contacts (Family & Friends)</h3>
+              <p class="text-[11px] text-slate-500 -mt-2">These are the people SafeTour will offer to message the moment you raise an SOS. Add real numbers with country code (e.g. +91...) so WhatsApp/SMS/Call links work correctly.</p>
+
+              <div class="space-y-2">
+                <div v-for="contact in emergencyContacts" :key="contact.id" class="flex items-center justify-between bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs">
+                  <div>
+                    <span class="font-bold text-slate-800" v-text="contact.name"></span>
+                    <span class="text-slate-400"> · </span>
+                    <span class="text-slate-500" v-text="contact.relation"></span>
+                    <div class="text-slate-400 font-mono text-[10px]" v-text="contact.phone"></div>
+                  </div>
+                  <button @click="removeEmergencyContact(contact.id)" class="text-slate-400 hover:text-red-600 px-2"><i class="bi bi-trash3"></i></button>
+                </div>
+                <p v-if="emergencyContacts.length === 0" class="text-[11px] text-slate-400 text-center py-2">No emergency contacts saved yet. Add at least one below.</p>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-200">
+                <input v-model="newContactName" type="text" placeholder="Name" class="col-span-1 bg-white border border-slate-300 rounded px-2.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                <select v-model="newContactRelation" class="bg-white border border-slate-300 rounded px-2.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                  <option>Family</option>
+                  <option>Friend</option>
+                  <option>Guide</option>
+                  <option>Other</option>
+                </select>
+                <input v-model="newContactPhone" type="tel" placeholder="+91XXXXXXXXXX" class="bg-white border border-slate-300 rounded px-2.5 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500">
+              </div>
+              <button @click="addEmergencyContact" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded text-xs flex items-center justify-center gap-1.5">
+                <i class="bi bi-plus-circle"></i> Add Contact
+              </button>
+            </div>
+
             <!-- Dial Trigger button -->
             <div v-if="sosStatus === 'inactive'" class="flex flex-col items-center">
               <button @click="triggerSosQuick"
@@ -1250,6 +1328,41 @@
                 </div>
               </div>
 
+              <!-- Notify Contacts & Emergency Services -->
+              <div class="bg-white border border-slate-200 p-5 rounded-xl space-y-4 shadow-sm text-left">
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5"><i class="bi bi-send-fill text-red-600"></i> Notify Your Circle & Authorities</h4>
+                <p class="text-[11px] text-slate-500 -mt-2">Taps open WhatsApp, SMS, or your phone dialer with your live coordinates already filled in — no separate app or paid gateway needed.</p>
+
+                <div v-if="emergencyContacts.length === 0" class="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  No saved contacts yet — cancel this SOS and add family/friends above, or use the emergency service buttons below right away.
+                </div>
+
+                <div v-for="contact in emergencyContacts" :key="'notify-' + contact.id" class="flex items-center justify-between gap-2 border border-slate-100 rounded-lg px-3 py-2">
+                  <div class="text-xs">
+                    <span class="font-bold text-slate-800" v-text="contact.name"></span>
+                    <span class="text-slate-400 block text-[10px]" v-text="contact.relation"></span>
+                  </div>
+                  <div class="flex gap-1.5">
+                    <button @click="notifyContactWhatsApp(contact)" class="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1.5 rounded text-[10px] font-bold flex items-center gap-1"><i class="bi bi-whatsapp"></i> WhatsApp</button>
+                    <button @click="notifyContactSMS(contact)" class="bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-1.5 rounded text-[10px] font-bold flex items-center gap-1"><i class="bi bi-chat-dots-fill"></i> SMS</button>
+                    <button @click="callContact(contact)" class="bg-slate-700 hover:bg-slate-600 text-white px-2.5 py-1.5 rounded text-[10px] font-bold flex items-center gap-1"><i class="bi bi-telephone-fill"></i> Call</button>
+                  </div>
+                </div>
+
+                <div class="pt-3 border-t border-slate-100 space-y-2">
+                  <h5 class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Emergency Services (India-wide, real numbers)</h5>
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button @click="callEmergencyNumber('112', 'National Emergency Number')" class="bg-red-600 hover:bg-red-500 text-white font-bold py-2 rounded text-xs flex items-center justify-center gap-1.5"><i class="bi bi-telephone-fill"></i> Call 112 (All Emergencies)</button>
+                    <button @click="callEmergencyNumber('100', 'Police')" class="bg-blue-700 hover:bg-blue-600 text-white font-bold py-2 rounded text-xs flex items-center justify-center gap-1.5"><i class="bi bi-shield-fill"></i> Call 100 (Police)</button>
+                    <button @click="callEmergencyNumber('108', 'Ambulance / Disaster Response')" class="bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-2 rounded text-xs flex items-center justify-center gap-1.5"><i class="bi bi-heart-pulse-fill"></i> Call 108 (Ambulance)</button>
+                  </div>
+                  <button @click="notifyLocalRescueUnit" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 rounded text-xs flex items-center justify-center gap-1.5">
+                    <i class="bi bi-broadcast"></i> Alert <span v-text="locationsConfig[selectedLocationKey].localRescueUnit"></span> (WhatsApp)
+                  </button>
+                  <p class="text-[9px] text-slate-400 text-center">112 / 100 / 108 are official India-wide emergency numbers. The local rescue unit contact is demo data for this prototype.</p>
+                </div>
+              </div>
+
               <div class="text-center pt-2">
                 <button @click="resolveSosLocal" class="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold px-5 py-2 rounded text-xs">
                   Cancel SOS / Mark Resolved
@@ -1346,8 +1459,9 @@
                 <!-- POIs Placement -->
                 <div v-for="poi in locationsConfig[selectedLocationKey].pois" 
                      :class="['absolute w-4.5 h-4.5 text-white font-bold text-[8px] rounded flex items-center justify-center border border-white/40 shadow cursor-pointer', 
-                              poi.type === 'H' ? 'bg-purple-700' : poi.type === 'P' ? 'bg-blue-700 rounded-full' : 'bg-emerald-600']"
-                     :style="{ left: poi.x + '%', top: poi.y + '%', transform: 'translate(-50%, -50%)' }">
+                              poi.type === 'H' ? 'bg-purple-700' : poi.type === 'P' ? 'bg-blue-700 rounded-full' : poi.type === 'C' ? 'bg-amber-500' : 'bg-emerald-600']"
+                     :style="{ left: poi.x + '%', top: poi.y + '%', transform: 'translate(-50%, -50%)' }"
+                     @click.stop="openPoiDetails(poi.name, poi.desc)">
                   <span v-text="poi.type"></span>
                 </div>
 
@@ -1778,7 +1892,7 @@
                      demoPanelOpen ? 'max-h-[500px]' : 'max-h-12 overflow-hidden']">
       <div class="flex justify-between items-center border-b border-slate-800 pb-2.5 mb-3 cursor-pointer" @click="demoPanelOpen = !demoPanelOpen">
         <span class="text-xs font-black text-white flex items-center gap-1.5 uppercase tracking-wide">
-          <i class="bi bi-sliders text-indigo-400"></i> SIH Demo Control Panel
+          <i class="bi bi-sliders text-indigo-400"></i> DEMO CONTROL PANEL
         </span>
         <button class="text-slate-400 hover:text-white font-bold text-xs">
           <span v-text="demoPanelOpen ? 'Hide' : 'Show'"></span>
@@ -1828,7 +1942,7 @@
 
         <div class="border-t border-slate-800 pt-2 flex justify-between items-center text-[10px] text-slate-500 font-mono">
           <span>Active Mode: <strong class="text-white uppercase" v-text="simScenario"></strong></span>
-          <span>SIH Judge Guide</span>
+          <span>Guide</span>
         </div>
       </div>
     </section>
@@ -1840,7 +1954,7 @@
           <div class="space-y-2 max-w-sm">
             <span class="font-extrabold text-white text-base flex items-center gap-1">SafeTour <span class="text-red-500">AI</span></span>
             <p class="text-slate-400">Offline AI-Enabled Tourist Safety, Risk Prediction and Disaster Rescue Coordination System</p>
-            <p class="text-slate-500 text-[10px]">Designed as an SIH prototype for safer remote tourism.</p>
+            <p class="text-slate-500 text-[10px]">Designed for safer remote tourism.</p>
           </div>
           
           <!-- Quick links -->
@@ -1857,7 +1971,7 @@
         </div>
 
         <div class="border-t border-slate-800 pt-6 flex flex-col sm:flex-row justify-between text-slate-500 text-[10px]">
-          <span>© 2026 SafeTour AI - Smart India Hackathon Network</span>
+          <span>© 2026 SafeTour AI Network</span>
           <span>Designed with zero network dependencies for extreme off-grid reliability</span>
         </div>
       </div>
@@ -1903,13 +2017,18 @@
         terrain: "Gorges & Deciduous Forests",
         lat: 18.3275,
         lon: 82.8775,
+        image: "https://commons.wikimedia.org/wiki/Special:FilePath/Araku%20Valley%20from%20Galikonda%20View%20Point%2003.jpg?width=800",
+        imageCredit: "Pratish Khedekar, CC BY-SA 4.0, via Wikimedia Commons",
         nearestSafePoint: 'Safe Shelter SP-03 (2.4 km)',
         nearestHospital: 'Araku Area Hospital (8.7 km)',
         nearestRescue: 'Forest Guard Post (5.1 km)',
+        localRescueUnit: 'SDRF Team Alpha, Araku Depot',
+        localRescuePhone: '+911234500011',
         pois: [
           { name: "Araku Area Hospital", type: "H", x: 81.25, y: 75.0, desc: "Trauma unit with emergency disaster beds." },
           { name: "Police Post & SDRF Depot", type: "P", x: 18.75, y: 33.3, desc: "SDRF disaster rescue warehouse." },
-          { name: "Safe Shelter SP-03", type: "S", x: 50.0, y: 46.6, desc: "Concrete hazard shelter with solar power back." }
+          { name: "Safe Shelter SP-03", type: "S", x: 50.0, y: 46.6, desc: "Concrete hazard shelter with solar power back." },
+          { name: "Tourist Help & Comms Tower", type: "C", x: 65.0, y: 55.0, desc: "Cellular relay tower with tourist information desk." }
         ],
         hazards: [
           { name: "Landslide Zone C", type: "landslide", points: "70,10 90,5 95,25 78,32", color: "#ef4444", textX: 73, textY: 18 },
@@ -1927,13 +2046,18 @@
         terrain: "High alpine ridge slopes",
         lat: 30.7352,
         lon: 79.0669,
+        image: "https://commons.wikimedia.org/wiki/Special:FilePath/The%20temple%20of%20Kedernath.jpg?width=800",
+        imageCredit: "Wikimedia Commons contributor, CC0, via Wikimedia Commons",
         nearestSafePoint: 'SDRF Rambara Shelter (1.8 km)',
         nearestHospital: 'Kedarnath Base Clinic (0.9 km)',
         nearestRescue: 'Kedarnath Helipad Depot (0.4 km)',
+        localRescueUnit: 'SDRF Alpine Rescue Unit, Kedarnath',
+        localRescuePhone: '+911234500022',
         pois: [
           { name: "Kedarnath Base Clinic", type: "H", x: 75.0, y: 20.0, desc: "Oxygen supply depot and high-altitude emergency care." },
           { name: "SDRF Rambara Camp", type: "P", x: 30.0, y: 55.0, desc: "SDRF alpine search and rescue post." },
-          { name: "Rambara Safe Shelter", type: "S", x: 45.0, y: 70.0, desc: "Reinforced structure against cloudburst storms." }
+          { name: "Rambara Safe Shelter", type: "S", x: 45.0, y: 70.0, desc: "Reinforced structure against cloudburst storms." },
+          { name: "Helipad Comms Depot", type: "C", x: 80.0, y: 50.0, desc: "Emergency helipad with satellite communication relay." }
         ],
         hazards: [
           { name: "Avalanche Chute Alpha", type: "avalanche", points: "65,30 85,25 90,45 70,50", color: "#38bdf8", textX: 68, textY: 38 },
@@ -1951,13 +2075,18 @@
         terrain: "Wet highland slopes & estates",
         lat: 10.0889,
         lon: 77.0597,
+        image: "https://commons.wikimedia.org/wiki/Special:FilePath/Tea%20Estate%20Munnar.jpg?width=800",
+        imageCredit: "Wikimedia Commons contributor, CC BY-SA 3.0, via Wikimedia Commons",
         nearestSafePoint: 'Tata Estate Office Shelter (1.2 km)',
         nearestHospital: 'Munnar General Hospital (6.4 km)',
         nearestRescue: 'Fire & Rescue Station (4.3 km)',
+        localRescueUnit: 'Munnar Fire & Rescue Outpost',
+        localRescuePhone: '+911234500033',
         pois: [
           { name: "Munnar General Hospital", type: "H", x: 80.0, y: 65.0, desc: "Equipped with heavy mudslide trauma units." },
           { name: "Fire & Rescue Outpost", type: "P", x: 25.0, y: 40.0, desc: "Munnar local disaster responders depot." },
-          { name: "Tata Estate Shelter", type: "S", x: 55.0, y: 50.0, desc: "Stone estate warehouse with solar power grids." }
+          { name: "Tata Estate Shelter", type: "S", x: 55.0, y: 50.0, desc: "Stone estate warehouse with solar power grids." },
+          { name: "Tourist Info & Comms Point", type: "C", x: 68.0, y: 30.0, desc: "Tea estate checkpoint with radio relay to rescue HQ." }
         ],
         hazards: [
           { name: "Mudslide Slip Zone", type: "landslide", points: "55,20 75,15 80,35 60,40", color: "#f97316", textX: 58, textY: 28 },
@@ -1967,6 +2096,64 @@
         routeNameOnly: "Tea Valley Route M",
         routeAltName: "Anamudi Cliff Path",
         routeAltPoints: "38,55 50,58 65,52 82,45"
+      },
+      manali: {
+        name: "Manali, Himachal Pradesh",
+        routeName: "Solang Valley Route S",
+        elevation: "2,050m",
+        terrain: "Alpine slopes & river gorges",
+        lat: 32.2432,
+        lon: 77.1892,
+        image: "https://commons.wikimedia.org/wiki/Special:FilePath/Solangy-Valley-Manali.jpg?width=800",
+        imageCredit: "Wikimedia Commons contributor, via Wikimedia Commons",
+        nearestSafePoint: 'Solang Ridge Shelter (1.6 km)',
+        nearestHospital: 'Manali Civil Hospital (5.2 km)',
+        nearestRescue: 'Mountain Rescue Post, Solang (2.0 km)',
+        localRescueUnit: 'Himachal Mountain Rescue Team',
+        localRescuePhone: '+911234500044',
+        pois: [
+          { name: "Manali Civil Hospital", type: "H", x: 78.0, y: 68.0, desc: "General hospital with altitude-sickness and trauma care." },
+          { name: "Mountain Rescue Post", type: "P", x: 22.0, y: 36.0, desc: "Alpine rescue unit for avalanche and cliff incidents." },
+          { name: "Solang Ridge Shelter", type: "S", x: 52.0, y: 48.0, desc: "Reinforced shelter for sudden snowstorms." },
+          { name: "Ropeway Comms Station", type: "C", x: 62.0, y: 28.0, desc: "Cable-car base station with radio relay to valley HQ." }
+        ],
+        hazards: [
+          { name: "Avalanche Slope North", type: "avalanche", points: "60,12 82,8 88,30 66,34", color: "#38bdf8", textX: 63, textY: 22 },
+          { name: "River Gorge Flood Zone", type: "flood", points: "18,55 38,60 32,82 12,76", color: "#ef4444", textX: 20, textY: 68 }
+        ],
+        routePoints: "10,88 26,70 44,55 64,32 84,12",
+        routeNameOnly: "Solang Valley Route S",
+        routeAltName: "Rohtang Cliff Bypass",
+        routeAltPoints: "44,55 58,50 72,42 80,34"
+      },
+      ooty: {
+        name: "Ooty, Tamil Nadu",
+        routeName: "Nilgiri Lakeside Route O",
+        elevation: "2,240m",
+        terrain: "Rolling hills & tea gardens",
+        lat: 11.4064,
+        lon: 76.6932,
+        image: "https://commons.wikimedia.org/wiki/Special:FilePath/Ooty%20Lake%20in%20Tamil%20Nadu%2001.jpg?width=800",
+        imageCredit: "Wikimedia Commons contributor, via Wikimedia Commons",
+        nearestSafePoint: 'Botanical Garden Shelter (1.0 km)',
+        nearestHospital: 'Ooty Government Hospital (3.8 km)',
+        nearestRescue: 'Nilgiris Fire & Rescue Unit (3.1 km)',
+        localRescueUnit: 'Nilgiris District Rescue Squad',
+        localRescuePhone: '+911234500055',
+        pois: [
+          { name: "Ooty Government Hospital", type: "H", x: 76.0, y: 60.0, desc: "District hospital with 24x7 emergency ward." },
+          { name: "Nilgiris Fire & Rescue Unit", type: "P", x: 24.0, y: 38.0, desc: "Local fire and disaster response squad." },
+          { name: "Botanical Garden Shelter", type: "S", x: 50.0, y: 45.0, desc: "Covered shelter point near the lake promenade." },
+          { name: "Lakeside Comms Kiosk", type: "C", x: 60.0, y: 62.0, desc: "Tourist kiosk with radio link to district control room." }
+        ],
+        hazards: [
+          { name: "Steep Slope Zone", type: "landslide", points: "58,18 78,14 84,34 62,38", color: "#f97316", textX: 61, textY: 26 },
+          { name: "Lakeside Flood Basin", type: "flood", points: "20,58 40,62 34,82 14,78", color: "#ef4444", textX: 22, textY: 70 }
+        ],
+        routePoints: "9,86 24,66 40,52 60,40 80,22",
+        routeNameOnly: "Nilgiri Lakeside Route O",
+        routeAltName: "Doddabetta Ridge Path",
+        routeAltPoints: "40,52 54,54 68,48 82,40"
       }
     };
 
@@ -2134,10 +2321,147 @@
           nearestHospital: 'Araku Area Hospital (8.7 km)',
           nearestRescue: 'Forest Guard Post (5.1 km)'
         });
+        // ===== DEMO + LIVE GPS LOGIC =====
+        const demoMode = ref(true);
+        const gpsAccuracy = ref(null); // meters, set once live GPS reports a fix
+        const gpsWatchId = ref(null);
 
-        // Map XY projection coefficients (to transform coordinates into SVG percents)
-        const touristMapX = ref(46.8); 
-        const touristMapY = ref(37.5);
+        // Projects a real lat/lon onto the fake 0-100% map grid using the same
+        // bounding box handleMapClick() uses to go the other direction.
+        const projectLatLonToMap = (lat, lon) => {
+          const loc = locationsConfig[selectedLocationKey.value];
+          const minLon = loc.lon - 0.04, maxLon = loc.lon + 0.04;
+          const minLat = loc.lat - 0.03, maxLat = loc.lat + 0.03;
+          const pctX = Math.min(100, Math.max(0, ((lon - minLon) / (maxLon - minLon)) * 100));
+          const pctY = Math.min(100, Math.max(0, (1 - (lat - minLat) / (maxLat - minLat)) * 100));
+          return { pctX, pctY };
+        };
+
+        const enableLiveGPS = () => {
+          if (!navigator.geolocation) {
+            showToast('GPS Unavailable', 'This browser/device does not support geolocation.', 'error');
+            return;
+          }
+          demoMode.value = false;
+          showToast('Live GPS Enabling', 'Requesting device location permission — please allow when prompted.', 'info');
+
+          gpsWatchId.value = navigator.geolocation.watchPosition((pos) => {
+            if (demoMode.value) return;
+            touristProfile.value.latitude = pos.coords.latitude;
+            touristProfile.value.longitude = pos.coords.longitude;
+            gpsAccuracy.value = Math.round(pos.coords.accuracy || 0);
+
+            // Project the real coordinates onto the on-screen map using the
+            // currently selected demo location as the reference frame.
+            const { pctX, pctY } = projectLatLonToMap(pos.coords.latitude, pos.coords.longitude);
+            touristMapX.value = pctX;
+            touristMapY.value = pctY;
+          }, (err) => {
+            demoMode.value = true;
+            showToast('Location Error', err.message || 'Could not get your live location.', 'error');
+          }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 });
+
+          addSystemLog('Live GPS tracking enabled by tourist device.');
+        };
+
+        const disableLiveGPS = () => {
+          demoMode.value = true;
+          if (gpsWatchId.value !== null && navigator.geolocation) {
+            navigator.geolocation.clearWatch(gpsWatchId.value);
+            gpsWatchId.value = null;
+          }
+          showToast('Live GPS Disabled', 'Switched back to demo/simulated location mode.', 'info');
+          addSystemLog('Live GPS tracking disabled — back to demo mode.');
+        };
+
+        // ===== EMERGENCY CONTACTS (Friends & Family) =====
+        const emergencyContacts = ref([
+          { id: 1, name: 'Lakshmi Devi', relation: 'Family', phone: '+919876500001' },
+          { id: 2, name: 'Arjun Rao', relation: 'Friend', phone: '+919876500002' }
+        ]);
+        const newContactName = ref('');
+        const newContactRelation = ref('Family');
+        const newContactPhone = ref('');
+        let contactIdCounter = 3;
+
+        const addEmergencyContact = () => {
+          if (!newContactName.value.trim() || !newContactPhone.value.trim()) {
+            showToast('Missing Details', 'Enter both a name and a phone number to save the contact.', 'error');
+            return;
+          }
+          emergencyContacts.value.push({
+            id: contactIdCounter++,
+            name: newContactName.value.trim(),
+            relation: newContactRelation.value,
+            phone: newContactPhone.value.trim()
+          });
+          showToast('Contact Saved', `${newContactName.value.trim()} added to your emergency contacts.`, 'success');
+          newContactName.value = '';
+          newContactPhone.value = '';
+          newContactRelation.value = 'Family';
+        };
+
+        const removeEmergencyContact = (id) => {
+          emergencyContacts.value = emergencyContacts.value.filter(c => c.id !== id);
+        };
+
+        // Builds the plain-text distress message shared over WhatsApp/SMS.
+        const buildSosMessage = () => {
+          const loc = locationsConfig[selectedLocationKey.value];
+          const lat = touristProfile.value.latitude.toFixed(5);
+          const lon = touristProfile.value.longitude.toFixed(5);
+          const mapsLink = `https://www.google.com/maps?q=${lat},${lon}`;
+          const lines = [
+            `🚨 SOS ALERT — ${touristProfile.value.name} (${touristProfile.value.id})`,
+            `Type: ${sosType.value.toUpperCase()}`,
+            `Near: ${loc.name}`,
+            `Coordinates: ${lat}, ${lon}`,
+            `Map: ${mapsLink}`,
+            `Battery: ${touristProfile.value.battery}% | Risk: ${riskLevelText.value}`
+          ];
+          if (sosCustomMsg.value) lines.push(`Note: ${sosCustomMsg.value}`);
+          lines.push('Please help or alert local authorities immediately.');
+          return lines.join('\n');
+        };
+
+        const notifyContactWhatsApp = (contact) => {
+          const phoneDigits = contact.phone.replace(/[^0-9]/g, '');
+          const text = encodeURIComponent(buildSosMessage());
+          window.open(`https://wa.me/${phoneDigits}?text=${text}`, '_blank');
+          showToast('WhatsApp Opened', `Distress message ready to send to ${contact.name}.`, 'success');
+          addSystemLog(`SOS WhatsApp message opened for ${contact.name} (${contact.phone}).`);
+        };
+
+        const notifyContactSMS = (contact) => {
+          const text = encodeURIComponent(buildSosMessage());
+          const ua = navigator.userAgent || '';
+          const separator = /iPhone|iPad|iPod/i.test(ua) ? '&' : '?';
+          window.location.href = `sms:${contact.phone}${separator}body=${text}`;
+          showToast('SMS Composer Opened', `Distress message ready to send to ${contact.name}.`, 'success');
+          addSystemLog(`SOS SMS composer opened for ${contact.name} (${contact.phone}).`);
+        };
+
+        const callContact = (contact) => {
+          window.location.href = `tel:${contact.phone}`;
+          addSystemLog(`Calling ${contact.name} (${contact.phone}).`);
+        };
+
+        const callEmergencyNumber = (number, label) => {
+          window.location.href = `tel:${number}`;
+          showToast('Calling Emergency Services', `Dialing ${label} (${number}).`, 'error');
+          addSystemLog(`Calling ${label} (${number}).`);
+        };
+
+        const notifyLocalRescueUnit = () => {
+          const loc = locationsConfig[selectedLocationKey.value];
+          const phoneDigits = (loc.localRescuePhone || '').replace(/[^0-9]/g, '');
+          const text = encodeURIComponent(buildSosMessage());
+          window.open(`https://wa.me/${phoneDigits}?text=${text}`, '_blank');
+          showToast('Rescue Unit Alerted', `Distress message opened for ${loc.localRescueUnit}.`, 'success');
+          addSystemLog(`SOS message opened for local rescue unit: ${loc.localRescueUnit}.`);
+        };
+
+        // Map XY projection coefficients
 
         // SVG POI click popup
         const mapPopup = ref(null);
@@ -2842,8 +3166,28 @@
           openPoiDetails,
           downloadMap,
           riskSliders,
+// ===== CODE END =====
           calculatedRisk,
           riskLevelText,
+          enableLiveGPS,
+          disableLiveGPS,
+          demoMode,
+          gpsAccuracy,
+          emergencyContacts,
+          newContactName,
+          newContactRelation,
+          newContactPhone,
+          addEmergencyContact,
+          removeEmergencyContact,
+          notifyContactWhatsApp,
+          notifyContactSMS,
+          callContact,
+          callEmergencyNumber,
+          notifyLocalRescueUnit,
+          buildSosMessage,
+          touristProfile,
+          touristMapx,
+          touristMapY,
           deviationStatus,
           deviationLevel,
           lastRiskChange,
@@ -2910,7 +3254,41 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/serviceworker.js');
 }
 </script>
+<!-- ... nee motham app code ... -->
 
+<script>
+async function saveFamily(){
+  const n1 = document.getElementById('fam1').value;
+  const n2 = document.getElementById('fam2').value;
+  const numbers = [n1, n2].filter(Boolean);
+  await fetch('/api/add-family',{method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({numbers})});
+  alert("✅ Family numbers secured 🔒");
+  document.getElementById('fam1').value=""; document.getElementById('fam2').value="";
+}
+async function sendAlertToFamily(){
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const res = await fetch('/api/send-family-alert',{method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({lat:pos.coords.latitude, lng:pos.coords.longitude, userName:"Pragna"})});
+    const data = await res.json();
+    data.waLinks.forEach(link => window.open(link, '_blank'));
+    alert("🚨 Family ki WhatsApp & Website Notification vellindi!");
+  });
+}
+let lastTime = "";
+setInterval(async()=>{
+  try{
+    let r = await fetch('/api/get-alert'); let d = await r.json();
+    if(d.time && d.time!==lastTime){
+      lastTime = d.time;
+      document.getElementById('count').style.display='inline';
+      document.getElementById('count').innerText='1';
+      document.getElementById('list').innerHTML=`<div style="background:#ffe6e6; padding:10px; border-radius:8px; border-left:4px solid red;"><b>${d.user} needs help!</b><br><small>${d.time}</small><br><a href="${d.location}" target="_blank">📍 Click to View Location</a></div>`;
+    }
+  }catch(e){}
+}, 3000);
+</script>
+
+</body>
+</html>
 
 </body>
 </html>
