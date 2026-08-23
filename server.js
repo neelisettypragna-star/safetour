@@ -39,7 +39,7 @@ app.post('/api/send-family-alert', (req,res)=>{
 app.get('/api/get-alert', (req,res)=>{
     res.json(latestAlert || {});
 });
-// --- END ---s
+// --- END ---
 
 // Serve the index.html website file directly
 app.use(express.static(__dirname));
