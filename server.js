@@ -12,30 +12,59 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 
-const DB_PATH = path.join(__dirname, 'data', 'db.json');
 const PORT = process.env.PORT || 4000;
-
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
-// ---------------------------------------------------------------------------
-// Tiny JSON-file "database" helpers
-// ---------------------------------------------------------------------------
+// Serve the index.html website file directly
+app.use(express.static(__dirname));
+
+// Database setup
+const DATA_DIR = path.join(__dirname, 'data');
+const DB_PATH = path.join(DATA_DIR, 'db.json');
+
+const defaultDB = {
+  users: { tourists: [], authorities: [] },
+  tourists: [],
+  locations: [],
+  incidents: [],
+  rescueTeams: [],
+  logs: []
+};
+
 function readDB() {
-  const raw = fs.readFileSync(DB_PATH, 'utf-8');
-  return JSON.parse(raw);
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    if (!fs.existsSync(DB_PATH)) {
+      fs.writeFileSync(DB_PATH, JSON.stringify(defaultDB, null, 2), 'utf-8');
+    }
+    const raw = fs.readFileSync(DB_PATH, 'utf-8');
+    return JSON.parse(raw);
+  } catch (err) {
+    return defaultDB;
+  }
 }
 
 function writeDB(db) {
-  fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), 'utf-8');
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Database write error:', err);
+  }
 }
 
 function addLog(db, message) {
   const now = new Date();
   const timestamp = now.toTimeString().split(' ')[0];
   db.logs.unshift({ timestamp: `[${timestamp}]`, message });
-  db.logs = db.logs.slice(0, 200); // cap log growth
+  db.logs = db.logs.slice(0, 200);
 }
 
 function riskLabel(score) {
@@ -45,26 +74,18 @@ function riskLabel(score) {
   return 'LOW';
 }
 
-// ---------------------------------------------------------------------------
-// Health check
-// ---------------------------------------------------------------------------
+// Routes
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'safetour-ai-backend', time: new Date().toISOString() });
 });
 
-// ---------------------------------------------------------------------------
-// Auth
-// ---------------------------------------------------------------------------
 app.post('/api/auth/tourist-login', (req, res) => {
   const { username, phone } = req.body || {};
-  if (!username) {
-    return res.status(400).json({ error: 'Username is required.' });
-  }
+  if (!username) return res.status(400).json({ error: 'Username is required.' });
 
   const db = readDB();
   let tourist = db.users.tourists.find(t => t.username === username);
 
-  // Auto-register unseen demo usernames so the prototype never dead-ends.
   if (!tourist) {
     tourist = {
       username,
@@ -105,9 +126,6 @@ app.post('/api/auth/authority-login', (req, res) => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Tourists
-// ---------------------------------------------------------------------------
 app.get('/api/tourists', (req, res) => {
   const db = readDB();
   res.json(db.tourists);
@@ -120,7 +138,6 @@ app.get('/api/tourists/:id', (req, res) => {
   res.json(tourist);
 });
 
-// Tourist website pushes a telemetry update (GPS, battery, live risk score)
 app.post('/api/tourists/:id/telemetry', (req, res) => {
   const db = readDB();
   const { risk, gps, battery, status } = req.body || {};
@@ -141,21 +158,15 @@ app.post('/api/tourists/:id/telemetry', (req, res) => {
   res.json(tourist);
 });
 
-// ---------------------------------------------------------------------------
-// Locations (offline map presets)
-// ---------------------------------------------------------------------------
 app.get('/api/locations', (req, res) => {
   const db = readDB();
   res.json(db.locations);
 });
 
-// ---------------------------------------------------------------------------
-// AI Risk Engine
-// ---------------------------------------------------------------------------
 app.post('/api/risk/calculate', (req, res) => {
   const { weather = 'clear', deviation = 0, terrain = 'safe', time = 'morning', crowd = 'medium' } = req.body || {};
 
-  let score = 5; // baseline location risk constant
+  let score = 5;
 
   if (weather === 'clear') score += 5;
   else if (weather === 'rain') score += 12;
@@ -189,9 +200,6 @@ app.post('/api/risk/calculate', (req, res) => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// SOS / Incidents
-// ---------------------------------------------------------------------------
 app.get('/api/incidents', (req, res) => {
   const db = readDB();
   res.json(db.incidents);
@@ -250,17 +258,11 @@ app.patch('/api/incidents/:id/resolve', (req, res) => {
   res.json(incident);
 });
 
-// ---------------------------------------------------------------------------
-// Rescue teams
-// ---------------------------------------------------------------------------
 app.get('/api/rescue-teams', (req, res) => {
   const db = readDB();
   res.json(db.rescueTeams);
 });
 
-// ---------------------------------------------------------------------------
-// Dashboard aggregate stats
-// ---------------------------------------------------------------------------
 app.get('/api/dashboard/stats', (req, res) => {
   const db = readDB();
 
@@ -280,9 +282,6 @@ app.get('/api/dashboard/stats', (req, res) => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// System logs
-// ---------------------------------------------------------------------------
 app.get('/api/logs', (req, res) => {
   const db = readDB();
   res.json(db.logs);
@@ -297,6 +296,11 @@ app.post('/api/logs', (req, res) => {
   res.status(201).json(db.logs[0]);
 });
 
+// Serve index.html on root page load
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 app.listen(PORT, () => {
-  console.log(`SafeTour AI backend running at http://localhost:${PORT}`);
+  console.log(`SafeTour AI running on port ${PORT}`);
 });
