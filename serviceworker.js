@@ -1,9 +1,26 @@
-const CACHE_NAME = "safetour-v3";
-const urlsToCache = ["/", "/index.html"];
+const CACHE_NAME = "safetour-v4";
+const URLS_TO_CACHE = ["/", "/index.html"];
 
-self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(urlsToCache)));
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(URLS_TO_CACHE))
+  );
+  self.skipWaiting();
 });
-self.addEventListener("fetch", e => {
-  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => 
+      Promise.all(keys.map((k) => k !== CACHE_NAME ? caches.delete(k) : null))
+    )
+  );
+  self.clients.claim();
+});
+
+self.addEventListener("fetch", (event) => {
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      return cached || fetch(event.request).catch(() => caches.match("/"));
+    })
+  );
 });
