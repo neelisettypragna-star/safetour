@@ -7,7 +7,7 @@
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Vue 3 -->
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Bootstrap Icons (Robust, CSS-based icons) -->
@@ -58,6 +58,7 @@
       border-radius: 3px;
     }
   </style>
+</head>
 <body class="bg-slate-50 text-slate-900 font-sans min-h-screen flex flex-col transition-all-300">
 
 <!-- 🔔 BELL CODE - IKKADA PASTE CHEY - START -->
@@ -585,20 +586,22 @@
               </div>
             </div>
 
+            <!-- FAMILY SECURE NOTIFICATION -->
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-3">
+              <h3 class="font-bold text-lg text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
+                👨‍👩‍👧 Add Family Numbers — Secure 🔒
+              </h3>
+              <p class="text-xs text-slate-500">Numbers evariki kanapadavu — stored securely on the backend only.</p>
+              <input id="fam1" type="password" placeholder="Family 1 Number (9876543210)" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
+              <input id="fam2" type="password" placeholder="Family 2 Number" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
+              <button onclick="saveFamily()" class="w-full py-2.5 bg-slate-900 text-white font-bold rounded-lg text-sm hover:bg-slate-800 transition">🔒 Save Family — Secure</button>
+              <button onclick="sendAlertToFamily()" class="w-full py-3.5 bg-red-600 text-white font-bold rounded-full text-base hover:bg-red-500 transition shadow">🚨 SOS — ALERT FAMILY</button>
+            </div>
+
             <!-- Telemetry Diagnostics details -->
             <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
               <h3 class="font-bold text-lg text-slate-900 border-b border-slate-100 pb-2">Active Location Diagnostics</h3>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- FAMILY BOX - DASHBOARD LO -->
-              <!-- FAMILY BOX - DASHBOARD LO -->
-<div style="background:white; padding:15px; border-radius:12px; margin:20px; border:2px solid black; box-shadow:0 4px 10px rgba(0,0,0,0.1);">
-  <h3>👨‍👩‍👧 Add Family Numbers - Secure 🔒</h3>
-  <p style="font-size:12px; color:gray;">Numbers evariki kanapadavu</p>
-  <input id="fam1" type="password" placeholder="Family 1 Number (9876543210)" style="width:100%; padding:10px; margin:5px 0; border-radius:8px; border:1px solid #ccc;">
-  <input id="fam2" type="password" placeholder="Family 2 Number" style="width:100%; padding:10px; margin:5px 0; border-radius:8px; border:1px solid #ccc;">
-  <button onclick="saveFamily()" style="width:100%; padding:10px; background:black; color:white; border-radius:8px; margin-top:5px;">🔒 Save Family - Secure</button>
-  <button onclick="sendAlertToFamily()" style="width:100%; padding:15px; background:red; color:white; border:none; border-radius:30px; font-weight:bold; font-size:16px; margin-top:10px;">🚨 SOS - ALERT FAMILY</button>
-</div>
                 <div class="space-y-2">
                   <div class="flex justify-between text-xs py-1 border-b border-slate-100">
                     <span class="text-slate-500">Current Latitude:</span>
@@ -3258,37 +3261,79 @@ if ('serviceWorker' in navigator) {
 
 <script>
 async function saveFamily(){
-  const n1 = document.getElementById('fam1').value;
-  const n2 = document.getElementById('fam2').value;
+  const n1 = document.getElementById('fam1').value.trim();
+  const n2 = document.getElementById('fam2').value.trim();
   const numbers = [n1, n2].filter(Boolean);
-  await fetch('/api/add-family',{method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({numbers})});
-  alert("✅ Family numbers secured 🔒");
-  document.getElementById('fam1').value=""; document.getElementById('fam2').value="";
+
+  if (numbers.length === 0) {
+    alert("⚠️ Please enter at least one family number first.");
+    return;
+  }
+
+  try {
+    const res = await fetch(API_BASE + '/add-family', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ numbers })
+    });
+    if (!res.ok) throw new Error('Server responded with ' + res.status);
+    alert("✅ Family numbers secured 🔒");
+    document.getElementById('fam1').value = "";
+    document.getElementById('fam2').value = "";
+  } catch (err) {
+    alert("⚠️ Could not reach the server. Make sure the backend is running (npm start) and you opened this page via http://localhost:4000 — not by double-clicking the file.");
+    console.warn('[Family Alert] saveFamily failed:', err.message);
+  }
 }
+
 async function sendAlertToFamily(){
-  navigator.geolocation.getCurrentPosition(async pos=>{
-    const res = await fetch('/api/send-family-alert',{method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({lat:pos.coords.latitude, lng:pos.coords.longitude, userName:"Pragna"})});
-    const data = await res.json();
-    data.waLinks.forEach(link => window.open(link, '_blank'));
-    alert("🚨 Family ki WhatsApp & Website Notification vellindi!");
+  if (!navigator.geolocation) {
+    alert("⚠️ This browser does not support GPS location.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    try {
+      const res = await fetch(API_BASE + '/send-family-alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude, userName: "Pragna" })
+      });
+      if (!res.ok) throw new Error('Server responded with ' + res.status);
+      const data = await res.json();
+
+      if (Array.isArray(data.waLinks) && data.waLinks.length > 0) {
+        data.waLinks.forEach(link => window.open(link, '_blank'));
+        alert("🚨 Family ki WhatsApp & Website Notification vellindi!");
+      } else {
+        alert("⚠️ No family numbers saved yet. Please add family numbers first, then send the alert.");
+      }
+    } catch (err) {
+      alert("⚠️ Could not reach the server. Make sure the backend is running (npm start) and you opened this page via http://localhost:4000 — not by double-clicking the file.");
+      console.warn('[Family Alert] sendAlertToFamily failed:', err.message);
+    }
+  }, (err) => {
+    alert("⚠️ Could not get your location: " + err.message);
   });
 }
+
 let lastTime = "";
-setInterval(async()=>{
-  try{
-    let r = await fetch('/api/get-alert'); let d = await r.json();
-    if(d.time && d.time!==lastTime){
+setInterval(async () => {
+  try {
+    const r = await fetch(API_BASE + '/get-alert');
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d.time && d.time !== lastTime) {
       lastTime = d.time;
-      document.getElementById('count').style.display='inline';
-      document.getElementById('count').innerText='1';
-      document.getElementById('list').innerHTML=`<div style="background:#ffe6e6; padding:10px; border-radius:8px; border-left:4px solid red;"><b>${d.user} needs help!</b><br><small>${d.time}</small><br><a href="${d.location}" target="_blank">📍 Click to View Location</a></div>`;
+      document.getElementById('count').style.display = 'inline';
+      document.getElementById('count').innerText = '1';
+      document.getElementById('list').innerHTML = `<div style="background:#ffe6e6; padding:10px; border-radius:8px; border-left:4px solid red;"><b>${d.user} needs help!</b><br><small>${d.time}</small><br><a href="${d.location}" target="_blank">📍 Click to View Location</a></div>`;
     }
-  }catch(e){}
+  } catch (e) {
+    // Backend unreachable — fail silently, matches the site's offline-first design.
+  }
 }, 3000);
 </script>
-
-</body>
-</html>
 
 </body>
 </html>
